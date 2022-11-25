@@ -25,6 +25,12 @@ pub struct RiveScript {
 }
 
 impl RiveScript {
+    /// Initialize a new RiveScript chatbot personality.
+    ///
+    /// A single instance of RiveScript is able to have its own set of responses ("brain") independently
+    /// of other instances of RiveScript. Also, by default, RiveScript keeps track of temporary user
+    /// variables (such as recent reply history and any variables the bot has learned about them) at
+    /// in local memory of this instance, with each instance keeping its own separate data store.
     pub fn new() -> Self {
         Self {
             debug: false,
@@ -72,6 +78,14 @@ impl RiveScript {
     }
 
     /// Load a RiveScript document by filename on disk.
+    /// Example
+    /// ```rust
+    /// # use rivescript::RiveScript;
+    /// # fn main() {
+    ///     let mut bot = RiveScript::new();
+    ///     bot.load_file("./eg/brain/eliza.rive").expect("Couldn't load file from disk!");
+    /// # }
+    /// ```
     pub fn load_file(&self, path: &str) -> Result<bool, Box<dyn Error>> {
         debug!("load_file called on: {}", path);
 
@@ -82,6 +96,20 @@ impl RiveScript {
     }
 
     /// Stream a string containing RiveScript syntax into the bot, rather than read from the filesystem.
+    /// Example
+    /// ```rust
+    /// # use rivescript::RiveScript;
+    /// # fn main() {
+    ///     let mut bot = RiveScript::new();
+    ///     let code = String::from(
+    ///         "
+    ///         + hello bot
+    ///         - Hello, human!
+    ///         ",
+    ///     );
+    ///     bot.stream(code).expect("Couldn't parse code!");
+    /// # }
+    /// ```
     pub fn stream(&self, source: String) -> Result<bool, Box<dyn Error>> {
         let ast = self.parser.parse("stream()", source)?;
         Ok(true)
@@ -90,11 +118,4 @@ impl RiveScript {
     /// After loading RiveScript source documents, this function will
     /// pre-populate sort buffers in memory.
     pub fn sort_triggers(&self) {}
-
-    pub fn test(&self) {
-        println!(
-            "RiveScript debug={} utf8={} depth={}",
-            self.debug, self.utf8, self.depth
-        );
-    }
 }
