@@ -7,11 +7,13 @@
 
 use log::debug;
 use parser::Parser;
-use std::fs;
+use std::{error::Error, fs};
 use Result::Ok;
 
 mod ast;
+mod errors;
 mod parser;
+mod tests;
 
 /// RiveScript represents a single chatbot personality in memory.
 pub struct RiveScript {
@@ -35,32 +37,31 @@ impl RiveScript {
     /// Load a directory of RiveScript documents (.rive or .rs extension) from a folder on disk.
     /// Example
     /// ```rust
+    /// # use rivescript::RiveScript;
     /// # fn main() {
     ///     let mut bot = RiveScript::new();
     ///     bot.load_directory("./eg/brain").expect("Couldn't load directory!");
     /// # }
     /// ```
-    pub fn load_directory(&self, path: &str) -> Result<bool, std::io::Error> {
+    pub fn load_directory(&self, path: &str) -> Result<bool, Box<dyn Error>> {
         debug!("load_directory called on: {}", path);
 
-        let paths = match fs::read_dir(path) {
-            Ok(res) => res,
-            Err(err) => return Err(err),
-        };
+        let paths = fs::read_dir(path)?;
 
         for filename in paths {
             let filepath = match filename {
                 Ok(res) => res.path(),
-                Err(err) => return Err(err),
+                Err(err) => return Err(Box::new(err)),
             };
 
             match filepath.extension() {
                 Some(ext) => {
                     if ext.eq_ignore_ascii_case("rive") || ext.eq_ignore_ascii_case(".rs") {
-                        match self.load_file(filepath.as_path().display().to_string().as_str()) {
-                            Ok(_) => continue,
-                            Err(err) => return Err(err),
-                        }
+                        self.load_file(filepath.as_path().display().to_string().as_str())?;
+                        // match self.load_file(filepath.as_path().display().to_string().as_str()) {
+                        //     Ok(_) => continue,
+                        //     Err(err) => return Err(err),
+                        // }
                     }
                 }
                 None => continue,
@@ -71,21 +72,18 @@ impl RiveScript {
     }
 
     /// Load a RiveScript document by filename on disk.
-    pub fn load_file(&self, path: &str) -> Result<bool, std::io::Error> {
+    pub fn load_file(&self, path: &str) -> Result<bool, Box<dyn Error>> {
         debug!("load_file called on: {}", path);
 
-        let contents = match fs::read_to_string(path) {
-            Ok(res) => res,
-            Err(err) => return Err(err),
-        };
+        let contents = fs::read_to_string(path)?;
 
-        self.parser.parse(path, contents);
+        let ast = self.parser.parse(path, contents)?;
         Ok(true)
     }
 
     /// Stream a string containing RiveScript syntax into the bot, rather than read from the filesystem.
-    pub fn stream(&self, source: String) -> Result<bool, std::io::Error> {
-        self.parser.parse("stream()", source);
+    pub fn stream(&self, source: String) -> Result<bool, Box<dyn Error>> {
+        let ast = self.parser.parse("stream()", source)?;
         Ok(true)
     }
 
