@@ -1,0 +1,19 @@
+[package]
+name = "rivescript-rs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "rivescript"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rivescript"
+path = "src/main.rs"
+
+[dependencies]
+ferris-says = "0.3.1"
+log = "0.4.17"
+env_logger = "0.10.0"
