@@ -24,6 +24,5 @@ name = "rivescript"
 path = "src/main.rs"
 
 [dependencies]
-ferris-says = "0.3.1"
 log = "0.4.17"
 env_logger = "0.10.0"
