@@ -1,5 +1,5 @@
 [package]
-name = "rivescript-rs"
+name = "rivescript"
 version = "0.1.0"
 edition = "2021"
 readme = "README.md"
@@ -9,6 +9,9 @@ homepage = "https://www.rivescript.com"
 repository = "https://github.com/aichaos/rivescript-rs"
 keywords = ["chatbot", "rivescript"]
 categories = ["parser-implementations"]
+exclude = [
+    "eg/*",
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

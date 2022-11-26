@@ -13,21 +13,21 @@ const DEFAULT_TOPIC: &str = "random";
 
 pub struct Parser {}
 
-enum ConcatMode {
-    None,
-    Newline,
-    Space,
-}
+// enum ConcatMode {
+//     None,
+//     Newline,
+//     Space,
+// }
 
-impl ConcatMode {
-    fn string(self) -> &'static str {
-        match self {
-            ConcatMode::None => "",
-            ConcatMode::Newline => "\n",
-            ConcatMode::Space => " ",
-        }
-    }
-}
+// impl ConcatMode {
+//     fn string(self) -> &'static str {
+//         match self {
+//             ConcatMode::None => "",
+//             ConcatMode::Newline => "\n",
+//             ConcatMode::Space => " ",
+//         }
+//     }
+// }
 
 impl Parser {
     pub fn new() -> Self {
@@ -54,7 +54,6 @@ impl Parser {
         let mut object_name = String::from("");
         let mut object_language = String::from("");
         let mut object_buffer: Vec<String> = Vec::new();
-        let mut prev_trigger = ""; // %Previous value under a +Trigger
 
         // Initialize the "random" topic.
         ast.init_topic(&topic);

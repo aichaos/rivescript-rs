@@ -91,7 +91,7 @@ impl RiveScript {
 
         let contents = fs::read_to_string(path)?;
 
-        let ast = self.parser.parse(path, contents)?;
+        let _ast = self.parser.parse(path, contents)?;
         Ok(true)
     }
 
@@ -111,7 +111,7 @@ impl RiveScript {
     /// # }
     /// ```
     pub fn stream(&self, source: String) -> Result<bool, Box<dyn Error>> {
-        let ast = self.parser.parse("stream()", source)?;
+        let _ast = self.parser.parse("stream()", source)?;
         Ok(true)
     }
 

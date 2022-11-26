@@ -63,9 +63,6 @@ impl AST {
             },
         );
     }
-
-    ///
-    pub fn borrow_topic(self, name: &String) {}
 }
 
 impl Topic {
