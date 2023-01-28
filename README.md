@@ -70,6 +70,15 @@ Git clone this project and run: `RUST_LOG=debug cargo run`
 
 The main.rs program is currently hardcoded to read from ./eg/brain.
 
+# Building
+
+Install [Rust](https://www.rust-lang.org/) and build and test this project
+with commands like the following:
+
+* `cargo build`
+
+    Builds the rivescript(.exe) binary.
+
 # Developer Notes
 
 This may be put somewhere else when the module is closer to "done."

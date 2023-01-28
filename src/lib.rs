@@ -5,15 +5,20 @@
 //! module provides an official RiveScript engine for Rust written by the
 //! language author.
 
-use log::debug;
-use parser::Parser;
-use std::{error::Error, fs};
+use crate::ast::AST;
+use crate::parser::Parser;
+use log::{debug, warn};
+use std::{error::Error, fs, string};
 use Result::Ok;
 
 mod ast;
 mod errors;
 mod parser;
+mod sorting;
 mod tests;
+
+// Rust library version.
+pub const VERSION: &str = "0.1.0";
 
 /// RiveScript represents a single chatbot personality in memory.
 pub struct RiveScript {
@@ -22,6 +27,7 @@ pub struct RiveScript {
     pub depth: i32,
 
     parser: Parser,
+    brain: AST,
 }
 
 impl RiveScript {
@@ -37,6 +43,7 @@ impl RiveScript {
             utf8: false,
             depth: 50,
             parser: Parser::new(),
+            brain: AST::new(),
         }
     }
 
@@ -49,7 +56,7 @@ impl RiveScript {
     ///     bot.load_directory("./eg/brain").expect("Couldn't load directory!");
     /// # }
     /// ```
-    pub fn load_directory(&self, path: &str) -> Result<bool, Box<dyn Error>> {
+    pub fn load_directory(&mut self, path: &str) -> Result<bool, Box<dyn Error>> {
         debug!("load_directory called on: {}", path);
 
         let paths = fs::read_dir(path)?;
@@ -86,12 +93,13 @@ impl RiveScript {
     ///     bot.load_file("./eg/brain/eliza.rive").expect("Couldn't load file from disk!");
     /// # }
     /// ```
-    pub fn load_file(&self, path: &str) -> Result<bool, Box<dyn Error>> {
+    pub fn load_file(&mut self, path: &str) -> Result<bool, Box<dyn Error>> {
         debug!("load_file called on: {}", path);
 
         let contents = fs::read_to_string(path)?;
 
-        let _ast = self.parser.parse(path, contents)?;
+        let ast = self.parser.parse(path, contents)?;
+        self.brain.extend(ast);
         Ok(true)
     }
 
@@ -115,7 +123,8 @@ impl RiveScript {
         Ok(true)
     }
 
-    /// After loading RiveScript source documents, this function will
-    /// pre-populate sort buffers in memory.
-    pub fn sort_triggers(&self) {}
+    /// Sort the internal data structures for optimal matching.
+    pub fn sort_triggers(&self) {
+        warn!("sort_triggers called, final AST is: {:#?}", self.brain);
+    }
 }

@@ -31,12 +31,11 @@ pub struct Parser {}
 
 impl Parser {
     pub fn new() -> Self {
-        debug!("rivescript::parser initialized!");
         Self {}
     }
 
     pub fn parse(&self, filename: &str, contents: String) -> Result<AST, ParseError> {
-        debug!("parse() called on: {}", filename);
+        debug!("BEGIN PARSE ON FILENAME: {}", filename);
 
         // Start building an AST parsed from these files.
         let mut ast = AST::new();
@@ -111,7 +110,7 @@ impl Parser {
                 continue;
             }
 
-            debug!("\tline {}: {}", lineno, line);
+            debug!("Line #{}: {}", lineno, line);
 
             // Separate the command from its data.
             if line.len() < 2 {
@@ -134,34 +133,23 @@ impl Parser {
             if cmd != "^" {
                 let mut li = lineno;
                 loop {
-                    debug!("Look ahead to line {}", li);
                     if li >= lines.len() {
-                        debug!("END LOOKAHEAD : RAN OUT OF LINES");
                         break;
                     }
 
                     let lookahead = lines[li].trim();
                     li += 1;
-                    debug!("Lookahead line is: {}", lookahead);
                     if lookahead.len() < 2 {
                         continue;
                     }
 
                     let look_cmd = &lookahead[..1];
                     let lookahead = lookahead[1..].trim();
-                    debug!("cmd: {} lookahead: {}", look_cmd, lookahead);
 
                     // We only care about a couple of lookahead command types.
-                    if look_cmd != "^" {
+                    if look_cmd != "^" || lookahead.len() == 0 {
                         break;
                     }
-
-                    // Only continue if the lookahead has any data.
-                    if lookahead.len() == 0 {
-                        break;
-                    }
-
-                    debug!("\tLookahead {}: {} {}", li, look_cmd, lookahead);
 
                     // If our parent command is a ! and the next command(s) are ^,
                     // we'll tack each extension on as a "fake line break" (which
@@ -224,11 +212,9 @@ impl Parser {
                                 "Didn't parse version string; was it a properly formatted number?",
                             ));
                         } else if version > RIVESCRIPT_SPEC_VERSION {
-                            warn!("The version is too high!");
                             return Err(ParseError::new("This RiveScript document declares a `! version` number higher than we support"));
                         } else {
                             ast.version = version;
-                            debug!("Version {} is OK!", version);
                         }
                         continue;
                     }
@@ -273,7 +259,6 @@ impl Parser {
                             // Process each row of array data independently.
                             let mut fields: Vec<String> = Vec::new();
                             for val in parts {
-                                debug!("val: {}", val);
                                 if val.contains("|") {
                                     // Pipe-separated array (so the words can have spaces)
                                     let mut other: Vec<String> =
@@ -334,7 +319,6 @@ impl Parser {
                     // Handle the kinds of labels.
                     match kind.as_str() {
                         "topic" => {
-                            debug!("Found a topic label: {}", name);
                             ast.init_topic(&name);
 
                             // Set the pointer for triggers to enter this topic.
@@ -403,15 +387,12 @@ impl Parser {
                     let kind = line;
 
                     if kind == "begin" || kind == "topic" {
-                        debug!("End the topic label");
                         topic = DEFAULT_TOPIC.to_string();
                     }
                 }
 
                 // + Trigger
                 "+" => {
-                    debug!("Trigger pattern: {}", line);
-
                     // Were we working on a previous trigger? If so, give it
                     // over to the AST and start a new one. We can't give it
                     // over NOW because we will need to own/modify it to
@@ -426,7 +407,6 @@ impl Parser {
 
                 // % Previous
                 "%" => {
-                    debug!("Found a %Previous to the trigger: {}", line);
                     current_trigger.previous = line.to_string();
                 }
 
@@ -457,15 +437,11 @@ impl Parser {
             }
         }
 
-        warn!("Final trigger: {:#?}", current_trigger);
-
         // If we had a final trigger ready to go, add it to the AST.
         if current_trigger.is_populated() {
             let t = ast.topics.get_mut(&topic).expect("or else");
             t.add_trigger(current_trigger);
         }
-
-        warn!("Final AST: {:#?}", ast);
 
         Ok(ast)
     }

@@ -35,6 +35,7 @@ pub struct Topic {
 }
 
 impl AST {
+    /// Initialize a new AST object ready for populating.
     pub fn new() -> Self {
         Self {
             version: 0.0,
@@ -46,6 +47,24 @@ impl AST {
             topics: HashMap::new(),
             objects: HashMap::new(),
         }
+    }
+
+    /// Merge the current AST with the contents of the other.
+    ///
+    /// This is used during parsing when e.g. loading a whole directory of files.
+    /// All parsed files add to the loaded AST for the root RiveScript instance.
+    pub fn extend(&mut self, other: AST) {
+        if other.version != 0.0 {
+            self.version = other.version;
+        }
+
+        self.globals.extend(other.globals.into_iter());
+        self.vars.extend(other.vars.into_iter());
+        self.subs.extend(other.subs.into_iter());
+        self.person.extend(other.person.into_iter());
+        self.arrays.extend(other.arrays.into_iter());
+        self.topics.extend(other.topics.into_iter());
+        self.objects.extend(other.objects.into_iter());
     }
 
     /// Initialize the data structure for a new topic, if it wasn't already there.
