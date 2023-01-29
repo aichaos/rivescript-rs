@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
-/// ParseError represents a fatal error during the parsing phase.
+/// ParseError represents a fatal error during the parsing and sorting phase.
 #[derive(Debug)]
 pub struct ParseError {
     message: String,

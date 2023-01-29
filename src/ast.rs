@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use log::warn;
+
 /// Root of the "abstract syntax tree" representing a RiveScript
 /// source document and its useful contents.
 #[derive(Debug)]
@@ -63,8 +65,20 @@ impl AST {
         self.subs.extend(other.subs.into_iter());
         self.person.extend(other.person.into_iter());
         self.arrays.extend(other.arrays.into_iter());
-        self.topics.extend(other.topics.into_iter());
+        // self.topics.extend(other.topics.into_iter());
         self.objects.extend(other.objects.into_iter());
+
+        // Merge topics more carefully.
+        for (name, topic) in other.topics {
+            match self.topics.get_mut(&name) {
+                Some(mine) => {
+                    mine.triggers.extend(topic.triggers);
+                }
+                None => {
+                    self.topics.insert(name, topic);
+                }
+            }
+        }
     }
 
     /// Initialize the data structure for a new topic, if it wasn't already there.
@@ -105,6 +119,7 @@ impl Topic {
 /// pair a set of replies (multiple OK, which will be chosen at random)
 /// to be sent when that trigger is matched.
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct Trigger {
     pub trigger: String,
     pub reply: Vec<String>,

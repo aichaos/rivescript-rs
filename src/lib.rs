@@ -16,6 +16,7 @@ mod errors;
 mod parser;
 mod sorting;
 mod tests;
+mod regex;
 
 // Rust library version.
 pub const VERSION: &str = "0.1.0";
@@ -95,12 +96,8 @@ impl RiveScript {
     /// ```
     pub fn load_file(&mut self, path: &str) -> Result<bool, Box<dyn Error>> {
         debug!("load_file called on: {}", path);
-
         let contents = fs::read_to_string(path)?;
-
-        let ast = self.parser.parse(path, contents)?;
-        self.brain.extend(ast);
-        Ok(true)
+        self._stream(path, contents)
     }
 
     /// Stream a string containing RiveScript syntax into the bot, rather than read from the filesystem.
@@ -118,13 +115,20 @@ impl RiveScript {
     ///     bot.stream(code).expect("Couldn't parse code!");
     /// # }
     /// ```
-    pub fn stream(&self, source: String) -> Result<bool, Box<dyn Error>> {
-        let _ast = self.parser.parse("stream()", source)?;
+    pub fn stream(&mut self, source: String) -> Result<bool, Box<dyn Error>> {
+        self._stream("stream()", source)
+    }
+
+    // Internal, centralized funnel to load a RiveScript document.
+    fn _stream(&mut self, filename: &str, source: String) -> Result<bool, Box<dyn Error>> {
+        let ast = self.parser.parse(filename, source)?;
+        self.brain.extend(ast);
         Ok(true)
     }
 
     /// Sort the internal data structures for optimal matching.
     pub fn sort_triggers(&self) {
         warn!("sort_triggers called, final AST is: {:#?}", self.brain);
+        sorting::sort_triggers(&self.brain);
     }
 }
