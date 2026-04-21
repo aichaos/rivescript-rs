@@ -26,10 +26,11 @@ The rough roadmap as I see it so far:
     - [ ] `! local concat = none|space|newline`
     - [ ] `! global depth = 25` can change recursion depth
     - [ ] Syntax checking and strict mode
-- [ ] Sorting the replies
-    - [ ] Sorting +Triggers
-    - [ ] Sorting %Previous
-    - [ ] Sorting substitution lists
+- [x] Sorting the replies
+    - [x] Sorting +Triggers
+    - [x] Sorting %Previous
+    - [x] Sorting substitution lists
+    - [ ] Topic inherits/includes.
 - [ ] Fetch a reply for the user
     - [ ] User variable storage
     - [ ] `> begin` blocks

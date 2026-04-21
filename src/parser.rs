@@ -386,6 +386,13 @@ impl Parser {
                 "<" => {
                     let kind = line;
 
+                    // If we were working on a trigger, commit it to AST now.
+                    if current_trigger.is_populated() {
+                        let t = ast.topics.get_mut(&topic).expect("or else");
+                        t.add_trigger(current_trigger);
+                        current_trigger = Trigger::new(&"");
+                    }
+
                     if kind == "begin" || kind == "topic" {
                         topic = DEFAULT_TOPIC.to_string();
                     }

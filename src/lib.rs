@@ -8,7 +8,7 @@
 use crate::ast::AST;
 use crate::parser::Parser;
 use log::{debug, warn};
-use std::{error::Error, fs, string};
+use std::{collections::HashMap, error::Error, fs, string};
 use Result::Ok;
 
 mod ast;
@@ -29,6 +29,10 @@ pub struct RiveScript {
 
     parser: Parser,
     brain: AST,
+    sorted_topics: HashMap<String, Vec<ast::Trigger>>,
+    sorted_thats: HashMap<String, Vec<ast::Trigger>>,
+    sorted_subs: Vec<String>,
+    sorted_person: Vec<String>,
 }
 
 impl RiveScript {
@@ -45,6 +49,10 @@ impl RiveScript {
             depth: 50,
             parser: Parser::new(),
             brain: AST::new(),
+            sorted_topics: HashMap::new(),
+            sorted_thats: HashMap::new(),
+            sorted_subs: Vec::new(),
+            sorted_person: Vec::new(),
         }
     }
 
@@ -127,8 +135,22 @@ impl RiveScript {
     }
 
     /// Sort the internal data structures for optimal matching.
-    pub fn sort_triggers(&self) {
+    pub fn sort_triggers(&mut self) {
         warn!("sort_triggers called, final AST is: {:#?}", self.brain);
-        sorting::sort_triggers(&self.brain);
+        match sorting::sort_triggers(&self.brain) {
+            Ok(result) => {
+                self.sorted_topics = result.topics;
+                self.sorted_thats = result.thats;
+                self.sorted_subs = result.subs;
+                self.sorted_person = result.person;
+            },
+            Err(_) => (),
+        }
+
+        // DEBUG
+        debug!("sorted_topics: {:#?}", self.sorted_topics);
+        debug!("sorted_thats: {:#?}", self.sorted_thats);
+        debug!("sorted_subs: {:#?}", self.sorted_subs);
+        debug!("sorted_person: {:#?}", self.sorted_person);
     }
 }
