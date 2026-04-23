@@ -17,7 +17,9 @@ mod parser;
 mod regex;
 mod reply;
 mod sorting;
+mod tags;
 mod tests;
+mod utils;
 
 /// Rust library version.
 pub const VERSION: &str = "0.1.0";
@@ -29,6 +31,8 @@ const ERR_NO_MATCH: &str = "[ERR: No Trigger Matched]";
 const ERR_NO_REPLY: &str = "[ERR: No Reply]";
 const BEGIN_REQUEST: &str = "request";
 const TAG_OK: &str = "{ok}";
+const UNDEFINED: &str = "undefined";
+const MAX_STARS: usize = 9;
 
 /// RiveScript represents a single chatbot personality in memory.
 pub struct RiveScript {

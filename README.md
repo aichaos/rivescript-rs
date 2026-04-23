@@ -33,37 +33,39 @@ The rough roadmap as I see it so far:
     - [ ] Topic inherits/includes.
 - [ ] Fetch a reply for the user
     - [ ] User variable storage
+    - [x] Substitutions (`! sub`)
     - [x] `> begin` blocks
     - [x] -Reply, and (weighted) random responses.
     - [x] @Redirect
     - [ ] %Previous
     - [ ] *Condition
     - [ ] Tags:
-        - [ ] `<star>, <star1> - <starN>`
-        - [ ] `<botstar>, <botstar1> - <botstarN>`
-        - [ ] `<input1> - <input9>`
-        - [ ] `<reply1> - <reply9>`
-        - [ ] `<id>`
+        - [x] `<star>, <star1> - <starN>`
+        - [ ] `<botstar>, <botstar1> - <botstarN>` (%Previous)
+        - [ ] `<input1> - <input9>` (user vars)
+        - [ ] `<reply1> - <reply9>` (user vars)
+        - [x] `<id>`
         - [x] `<noreply>`
-        - [ ] `<bot>`
-        - [ ] `<env>`
-        - [ ] `<get>, <set>`
-        - [ ] `<add>, <sub>, <mult>, <div>`
-        - [ ] `{topic=...}`
-        - [ ] `{weight=...}`
-        - [ ] `{@...}, <@>`
-        - [ ] `{!...}`
-        - [ ] `{random}`
-        - [ ] `{person}, <person>`
-        - [ ] `{formal}, <formal>`
-        - [ ] `{sentence}, <sentence>`
-        - [ ] `{uppercase}, <uppercase>`
-        - [ ] `{lowercase}, <lowercase>`
+        - [x] `<bot>`, `<bot name=value>`
+        - [x] `<env>`, `<env name=value>`
+        - [ ] `<get>, <set>` (user vars)
+        - [ ] `<add>, <sub>, <mult>, <div>` (user vars)
+        - [x] `{topic=...}` (partially; needs user var storage)
+        - [x] `{weight=...}`
+        - [x] `{@...}, <@>`
+        - [ ] `{!...}` (~~DEPRECATED~~)
+        - [x] `{random}` and `@(arrays)`
+        - [x] `{person}, <person>`
+        - [x] `{formal}, <formal>`
+        - [x] `{sentence}, <sentence>`
+        - [x] `{uppercase}, <uppercase>`
+        - [x] `{lowercase}, <lowercase>`
+        - [ ] `<call>` (object macros)
         - [x] `{ok}`
-        - [ ] `\s`
-        - [ ] `\n`
-        - [ ] `\/`
-        - [ ] `\#`
+        - [x] `\s`
+        - [x] `\n`
+        - [x] `\/`
+        - [x] `\#`
 - [ ] Make it pass the [RiveScript Test Suite](https://github.com/aichaos/rsts) to verify it is _at least_ as accurate as the other 5 implementations.
 - [ ] Followup niceties:
     - [ ] A JavaScript interpreter for built-in support for JS object macros.
@@ -71,9 +73,9 @@ The rough roadmap as I see it so far:
 
 # Testing It
 
-Git clone this project and run: `RUST_LOG=debug cargo run`
+Git clone this project and run: `cargo run -- eg/brain`
 
-The main.rs program is currently hardcoded to read from ./eg/brain.
+For help: `cargo run -- --help`
 
 # Building
 
@@ -112,4 +114,4 @@ other programming languages RiveScript was written in:
 
 This module will be released under MIT when it becomes functional.
 
-Copyright © 2022 Noah Petherbridge.
+Copyright © 2022-2026 Noah Petherbridge.

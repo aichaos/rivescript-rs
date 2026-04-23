@@ -76,7 +76,7 @@ pub async fn reply(rs: &mut RiveScript, username: &str, message: &str) -> Result
 }
 
 // Inner reply-fetching logic, called for the >BEGIN block too.
-fn get_reply(
+pub fn get_reply(
     rs: &RiveScript,
     username: &String,
     message: &String,
@@ -229,6 +229,11 @@ fn get_reply(
     }
 
     // Process tags for the BEGIN block.
+    if is_begin {
+        // TODO: set topic and user vars.
+    } else {
+        reply = crate::tags::process(&rs, &username, &message, &reply, stars, that_stars, step);
+    }
     // TODO
 
     Ok(String::from(reply))
@@ -244,7 +249,7 @@ pub fn format_message(rs: &RiveScript, msg: String) -> String {
     }
 
     // Run substitutions and sanitize what's left.
-    msg = substitute(rs, msg);
+    msg = crate::tags::substitute(rs.brain.subs.clone(), rs.sorted_subs.clone(), &msg);
 
     // In UTF-8 mode, only strip metacharacters and HTML brackets.
     if rs.utf8 {
@@ -285,12 +290,6 @@ pub fn trigger_regexp(username: &String, pattern: &String) -> Regex {
     pattern = String::from(format!(r"^{}$", pattern));
 
     Regex::new(&pattern).unwrap_or(Regex::new("").unwrap())
-}
-
-pub fn substitute(rs: &RiveScript, msg: String) -> String {
-    let mut msg = msg.clone();
-
-    msg
 }
 
 pub fn strip_nasties(msg: String) -> String {

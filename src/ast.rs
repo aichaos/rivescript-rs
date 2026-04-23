@@ -1,4 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::{Mutex, RwLock}};
+
+use log::debug;
 
 /// Root of the "abstract syntax tree" representing a RiveScript
 /// source document and its useful contents.
@@ -6,8 +8,8 @@ use std::collections::HashMap;
 pub struct AST {
     // Configuration fields typically found in 'begin.rive'
     pub version: f32,                         // ! version
-    pub globals: HashMap<String, String>,     // ! global
-    pub vars: HashMap<String, String>,        // ! var
+    pub globals: RwLock<HashMap<String, String>>,     // ! global
+    pub vars: RwLock<HashMap<String, String>>,        // ! var
     pub subs: HashMap<String, String>,        // ! sub stitutions
     pub person: HashMap<String, String>,      // ! person substitutions
     pub arrays: HashMap<String, Vec<String>>, // ! array sets
@@ -39,8 +41,8 @@ impl AST {
     pub fn new() -> Self {
         Self {
             version: 0.0,
-            globals: HashMap::new(),
-            vars: HashMap::new(),
+            globals: RwLock::new(HashMap::new()),
+            vars: RwLock::new(HashMap::new()),
             subs: HashMap::new(),
             person: HashMap::new(),
             arrays: HashMap::new(),
@@ -58,8 +60,14 @@ impl AST {
             self.version = other.version;
         }
 
-        self.globals.extend(other.globals.into_iter());
-        self.vars.extend(other.vars.into_iter());
+        let mut global_guard = self.globals.write().expect("RwLock poisoned");
+        let mut other_globals = other.globals.write().expect("RwLock poisoned");
+        global_guard.extend(other_globals.drain());
+
+        let mut vars_guard = self.vars.write().expect("RwLock poisoned");
+        let mut other_vars = other.vars.write().expect("RwLock poisoned");
+        vars_guard.extend(other_vars.drain());
+
         self.subs.extend(other.subs.into_iter());
         self.person.extend(other.person.into_iter());
         self.arrays.extend(other.arrays.into_iter());
@@ -103,6 +111,36 @@ impl AST {
     /// Returns true if the topic exists.
     pub fn has_topic(&self, name: &str) -> bool {
         self.topics.contains_key(name)
+    }
+
+    /// Get a global variable. Returns "undefined" if not set.
+    pub fn get_global(&self, name: &str) -> String {
+        let globals_guard = self.globals.read().expect("RwLock poisoned");
+        if let Some(value) = globals_guard.get(name) {
+            return value.to_string();
+        }
+        crate::UNDEFINED.to_string()
+    }
+
+    /// Set a global variable.
+    pub fn set_global(&self, name: &str, value: &str) {
+        let mut globals_guard = self.globals.write().expect("RwLock poisoned");
+        globals_guard.insert(name.to_string(), value.to_string());
+    }
+
+    /// Get a bot variable. Returns "undefined" if not set.
+    pub fn get_bot_var(&self, name: &str) -> String {
+        let vars_guard = self.vars.read().expect("RwLock poisoned");
+        if let Some(value) = vars_guard.get(name) {
+            return value.to_string();
+        }
+        crate::UNDEFINED.to_string()
+    }
+
+    /// Set a bot variable.
+    pub fn set_bot_var(&self, name: &str, value: &str) {
+        let mut vars_guard = self.vars.write().expect("RwLock poisoned");
+        vars_guard.insert(name.to_string(), value.to_string());
     }
 }
 

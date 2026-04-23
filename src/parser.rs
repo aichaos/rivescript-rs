@@ -236,11 +236,11 @@ impl Parser {
                         }
                         "global" => {
                             debug!("\tSet global {} = {}", name, value);
-                            ast.globals.insert(name.to_string(), value.to_string());
+                            ast.set_global(name, &value);
                         }
                         "var" => {
                             debug!("\tSet bot variable {} = {}", name, value);
-                            ast.vars.insert(name.to_string(), value.to_string());
+                            ast.set_bot_var(name, &value);
                         }
                         "sub" => {
                             debug!("\tSet substitution {} => {}", name, value);
