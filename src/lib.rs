@@ -14,18 +14,28 @@ use Result::Ok;
 mod ast;
 mod errors;
 mod parser;
+mod regex;
+mod reply;
 mod sorting;
 mod tests;
-mod regex;
 
-// Rust library version.
+/// Rust library version.
 pub const VERSION: &str = "0.1.0";
+
+// Various internal constants.
+const DEFAULT_TOPIC: &str = "random";
+const BEGIN_TOPIC: &str = "__begin__";
+const ERR_NO_MATCH: &str = "[ERR: No Trigger Matched]";
+const ERR_NO_REPLY: &str = "[ERR: No Reply]";
+const BEGIN_REQUEST: &str = "request";
+const TAG_OK: &str = "{ok}";
 
 /// RiveScript represents a single chatbot personality in memory.
 pub struct RiveScript {
     pub debug: bool,
     pub utf8: bool,
-    pub depth: i32,
+    pub depth: usize,
+    pub case_sensitive: bool,
 
     parser: Parser,
     brain: AST,
@@ -33,6 +43,10 @@ pub struct RiveScript {
     sorted_thats: HashMap<String, Vec<ast::Trigger>>,
     sorted_subs: Vec<String>,
     sorted_person: Vec<String>,
+
+    // Runtime (in-reply) variables.
+    in_reply_context: bool,
+    current_username: String,
 }
 
 impl RiveScript {
@@ -47,12 +61,17 @@ impl RiveScript {
             debug: false,
             utf8: false,
             depth: 50,
+            case_sensitive: false,
+
             parser: Parser::new(),
             brain: AST::new(),
             sorted_topics: HashMap::new(),
             sorted_thats: HashMap::new(),
             sorted_subs: Vec::new(),
             sorted_person: Vec::new(),
+
+            in_reply_context: false,
+            current_username: String::new(),
         }
     }
 
@@ -152,5 +171,12 @@ impl RiveScript {
         debug!("sorted_thats: {:#?}", self.sorted_thats);
         debug!("sorted_subs: {:#?}", self.sorted_subs);
         debug!("sorted_person: {:#?}", self.sorted_person);
+    }
+    /// Get a reply from the chatbot.
+    pub async fn reply(&mut self, username: &str, message: &str) -> Result<String, String> {
+        // let msg = reply::Message{
+        //     username: String::from("username"),
+        // }
+        reply::reply(self, username, message).await
     }
 }

@@ -33,9 +33,9 @@ The rough roadmap as I see it so far:
     - [ ] Topic inherits/includes.
 - [ ] Fetch a reply for the user
     - [ ] User variable storage
-    - [ ] `> begin` blocks
-    - [ ] -Reply, and (weighted) random responses.
-    - [ ] @Redirect
+    - [x] `> begin` blocks
+    - [x] -Reply, and (weighted) random responses.
+    - [x] @Redirect
     - [ ] %Previous
     - [ ] *Condition
     - [ ] Tags:
@@ -59,7 +59,7 @@ The rough roadmap as I see it so far:
         - [ ] `{sentence}, <sentence>`
         - [ ] `{uppercase}, <uppercase>`
         - [ ] `{lowercase}, <lowercase>`
-        - [ ] `{ok}`
+        - [x] `{ok}`
         - [ ] `\s`
         - [ ] `\n`
         - [ ] `\/`

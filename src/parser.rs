@@ -45,7 +45,7 @@ impl Parser {
         local_options.insert("concat".to_string(), "none".to_string());
 
         // Some temporary state variables as we parse this file.
-        let mut topic = String::from("random");
+        let mut topic = String::from(crate::DEFAULT_TOPIC);
         let mut current_trigger = Trigger::new("");
         let mut lineno: usize = 0;
         let mut in_comment = false;
@@ -313,7 +313,7 @@ impl Parser {
                     // BEGIN is a type of topic.
                     if kind == "begin" {
                         kind = String::from("topic");
-                        name = String::from("__begin__");
+                        name = String::from(crate::BEGIN_TOPIC);
                     }
 
                     // Handle the kinds of labels.

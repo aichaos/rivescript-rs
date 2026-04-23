@@ -30,3 +30,5 @@ structopt = "0.3.26"
 lazy_static = "1.4.0"
 regex = "1.7.1"
 itertools = "0.10.5"
+tokio = { version = "1.52.1", features = ["full"] }
+rand = "0.10.1"

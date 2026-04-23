@@ -1,7 +1,7 @@
 use env_logger;
-use log::warn;
+use log::{debug, warn};
 use rivescript::RiveScript;
-use std::{path::PathBuf, process::exit, fs, env};
+use std::{env, fs, io, io::Write, path::PathBuf, process::exit};
 use structopt::StructOpt;
 
 /// Command-line flags.
@@ -26,7 +26,8 @@ struct Opt {
     files: Vec<PathBuf>,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let opt = Opt::from_args();
     println!("{:#?}", opt);
 
@@ -86,4 +87,25 @@ Type a message to the bot and press Return to send it.",
     // bot.load_file("test.rive").expect("ok");
 
     bot.sort_triggers();
+
+    // Enter main prompt loop.
+    loop {
+        print!("You> ");
+        io::stdout()
+            .flush()
+            .expect("oops");
+        let mut message = String::new();
+        io::stdin()
+            .read_line(&mut message)
+            .expect("Failed to read line");
+
+        match bot.reply("localuser", &message).await {
+            Ok(reply) => {
+                println!("Bot> {reply}");
+            },
+            Err(e) => {
+                debug!("Error: {e}");
+            }
+        };
+    }
 }

@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use log::warn;
-
 /// Root of the "abstract syntax tree" representing a RiveScript
 /// source document and its useful contents.
 #[derive(Debug)]
@@ -95,6 +93,16 @@ impl AST {
                 inherits: HashMap::new(),
             },
         );
+    }
+
+    /// Returns true if a >begin section exists.
+    pub fn has_begin_block(&self) -> bool {
+        self.topics.contains_key(crate::BEGIN_TOPIC)
+    }
+
+    /// Returns true if the topic exists.
+    pub fn has_topic(&self, name: &str) -> bool {
+        self.topics.contains_key(name)
     }
 }
 
