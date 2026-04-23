@@ -64,6 +64,10 @@ The rough roadmap as I see it so far:
         - [ ] `\n`
         - [ ] `\/`
         - [ ] `\#`
+- [ ] Make it pass the [RiveScript Test Suite](https://github.com/aichaos/rsts) to verify it is _at least_ as accurate as the other 5 implementations.
+- [ ] Followup niceties:
+    - [ ] A JavaScript interpreter for built-in support for JS object macros.
+    - [ ] Pluggable user variable session drivers (with e.g. Redis implementation).
 
 # Testing It
 
