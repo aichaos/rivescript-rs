@@ -1,4 +1,5 @@
 use std::error::Error;
+use async_recursion::async_recursion;
 use rand::seq::IndexedRandom;
 
 use log::{debug, warn};
@@ -34,14 +35,14 @@ pub async fn reply(rs: &mut RiveScript, username: &str, message: &str) -> Result
     // If the BEGIN block exists, consult it first.
     if rs.brain.has_begin_block() {
         debug!("Has a BEGIN block");
-        match get_reply(rs, &rs.current_username, &String::from(crate::BEGIN_REQUEST), true, 0) {
+        match get_reply(rs, &rs.current_username, &String::from(crate::BEGIN_REQUEST), true, 0).await {
             Ok(begin) => {
                 debug!("Answer to BEGIN request: {begin}");
 
                 // Is it OK to continue?
                 if begin.contains(crate::TAG_OK) {
                     // Get the real reply and substitute it in.
-                    match get_reply(rs, &rs.current_username, &msg, false, 0) {
+                    match get_reply(rs, &rs.current_username, &msg, false, 0).await {
                         Ok(reply) => {
                             debug!("Answer to reply request: {reply}");
                             answer = begin.replace(crate::TAG_OK, &reply);
@@ -58,7 +59,7 @@ pub async fn reply(rs: &mut RiveScript, username: &str, message: &str) -> Result
         }
     } else {
         debug!("No BEGIN block");
-        match get_reply(rs, &rs.current_username, &msg, false, 0) {
+        match get_reply(rs, &rs.current_username, &msg, false, 0).await {
             Ok(reply) => {
                 debug!("Answer to reply request: {reply}");
                 answer = reply
@@ -72,11 +73,20 @@ pub async fn reply(rs: &mut RiveScript, username: &str, message: &str) -> Result
     if answer.is_empty() {
         answer = String::from(crate::ERR_NO_REPLY);
     }
+
+    // Save their message history.
+    rs.sessions.add_history(username, message, &answer).await;
+
+    // Unset the current user's ID.
+    rs.current_username = String::new();
+    rs.in_reply_context = false;
+
     return Ok(answer);
 }
 
 // Inner reply-fetching logic, called for the >BEGIN block too.
-pub fn get_reply(
+#[async_recursion]
+pub async fn get_reply(
     rs: &RiveScript,
     username: &String,
     message: &String,
@@ -147,8 +157,6 @@ pub fn get_reply(
                     // We found a match!
                     matched = trig;
                     found_match = true;
-
-                    debug!("Matched: stars={:?}", stars);
                     break;
                 },
                 None => continue,
@@ -173,7 +181,7 @@ pub fn get_reply(
                 redirect = redirect.to_lowercase();
 
                 debug!("Pretend user said: {redirect}");
-                match get_reply(&rs, &username, &redirect, false, step+1) {
+                match get_reply(&rs, &username, &redirect, false, step+1).await {
                     Ok(r) => {
                         reply = r;
                         break;
@@ -232,7 +240,7 @@ pub fn get_reply(
     if is_begin {
         // TODO: set topic and user vars.
     } else {
-        reply = crate::tags::process(&rs, &username, &message, &reply, stars, that_stars, step);
+        reply = crate::tags::process(&rs, &username, &message, &reply, stars, that_stars, step).await;
     }
     // TODO
 

@@ -32,7 +32,7 @@ The rough roadmap as I see it so far:
     - [x] Sorting substitution lists
     - [ ] Topic inherits/includes.
 - [ ] Fetch a reply for the user
-    - [ ] User variable storage
+    - [x] User variable storage
     - [x] Substitutions (`! sub`)
     - [x] `> begin` blocks
     - [x] -Reply, and (weighted) random responses.
@@ -42,14 +42,14 @@ The rough roadmap as I see it so far:
     - [ ] Tags:
         - [x] `<star>, <star1> - <starN>`
         - [ ] `<botstar>, <botstar1> - <botstarN>` (%Previous)
-        - [ ] `<input1> - <input9>` (user vars)
-        - [ ] `<reply1> - <reply9>` (user vars)
+        - [x] `<input1> - <input9>` (user vars)
+        - [x] `<reply1> - <reply9>` (user vars)
         - [x] `<id>`
         - [x] `<noreply>`
         - [x] `<bot>`, `<bot name=value>`
         - [x] `<env>`, `<env name=value>`
-        - [ ] `<get>, <set>` (user vars)
-        - [ ] `<add>, <sub>, <mult>, <div>` (user vars)
+        - [x] `<get>, <set>` (user vars)
+        - [x] `<add>, <sub>, <mult>, <div>` (user vars)
         - [x] `{topic=...}` (partially; needs user var storage)
         - [x] `{weight=...}`
         - [x] `{@...}, <@>`

@@ -8,7 +8,7 @@
 use crate::ast::AST;
 use crate::parser::Parser;
 use log::{debug, warn};
-use std::{collections::HashMap, error::Error, fs, string};
+use std::{collections::HashMap, error::Error, fs, string, sync::Arc};
 use Result::Ok;
 
 mod ast;
@@ -16,6 +16,7 @@ mod errors;
 mod parser;
 mod regex;
 mod reply;
+mod sessions;
 mod sorting;
 mod tags;
 mod tests;
@@ -33,6 +34,7 @@ const BEGIN_REQUEST: &str = "request";
 const TAG_OK: &str = "{ok}";
 const UNDEFINED: &str = "undefined";
 const MAX_STARS: usize = 9;
+const MAX_HISTORY: usize = 9;
 
 /// RiveScript represents a single chatbot personality in memory.
 pub struct RiveScript {
@@ -41,6 +43,7 @@ pub struct RiveScript {
     pub depth: usize,
     pub case_sensitive: bool,
 
+    pub sessions: Arc<dyn sessions::SessionManager + Send + Sync>,
     parser: Parser,
     brain: AST,
     sorted_topics: HashMap<String, Vec<ast::Trigger>>,
@@ -67,6 +70,7 @@ impl RiveScript {
             depth: 50,
             case_sensitive: false,
 
+            sessions: Arc::new(sessions::memory::MemorySession::new()),
             parser: Parser::new(),
             brain: AST::new(),
             sorted_topics: HashMap::new(),
@@ -77,6 +81,11 @@ impl RiveScript {
             in_reply_context: false,
             current_username: String::new(),
         }
+    }
+
+    /// Replace the default in-memory User Variable Session manager with an alternative.
+    pub fn set_session_manager(&mut self, manager: impl sessions::SessionManager + Send + Sync + 'static) {
+        self.sessions = Arc::new(manager);
     }
 
     /// Load a directory of RiveScript documents (.rive or .rs extension) from a folder on disk.

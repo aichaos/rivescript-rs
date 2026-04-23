@@ -6,7 +6,7 @@ use log::debug;
 use regex::Regex;
 
 /// Process RiveScript tags in a reply segment.
-pub fn process(
+pub async fn process(
     rs: &crate::RiveScript,
     username: &String,
     message: &String,
@@ -58,7 +58,14 @@ pub fn process(
         );
     }
 
-    // TODO: <input> and <reply>
+    // <input> and <reply>
+    reply = reply.replace("<input>", "<input1>");
+    reply = reply.replace("<reply>", "<reply1>");
+    let history = rs.sessions.get_history(username).await;
+    for i in 1..crate::MAX_HISTORY+1 {
+        reply = reply.replace(&String::from(format!("<input{i}>")), &history.input.get(i-1).unwrap_or(&crate::UNDEFINED.to_string()));
+        reply = reply.replace(&String::from(format!("<reply{i}>")), &history.reply.get(i-1).unwrap_or(&crate::UNDEFINED.to_string()));
+    }
 
     // <id> and escape codes.
     reply = reply.replace("<id>", username);
@@ -113,16 +120,96 @@ pub fn process(
                     }
                 }
             },
-            _ => (),
+            "set" => {
+                // <set> a user variable.
+                let parts: Vec<String> = data.splitn(2, "=").map(|s| s.to_string()).collect();
+                let name = parts.get(0).unwrap();
+                let value = parts.get(1).map(|s| s.as_str()).unwrap_or("");
+                rs.sessions.set(username, HashMap::from([
+                    (name.to_string(), value.to_string()),
+                ])).await;
+            },
+            "add" | "sub" | "mult" | "div" => {
+                // Math operator tags.
+                let parts: Vec<String> = data.splitn(2, "=").map(|s| s.to_string()).collect();
+                let name = parts.get(0).unwrap();
+                let value_str = parts.get(1).map(|s| s.as_str()).unwrap_or("");
+
+                // Initialize a numeric value?
+                let mut orig_str = rs.sessions.get(username, &name).await;
+                if orig_str == crate::UNDEFINED {
+                    orig_str = String::from("0");
+                    rs.sessions.set(username, HashMap::from([
+                        (name.to_string(), orig_str.to_string()),
+                    ])).await;
+                }
+
+                // Cast the original to a number.
+                if let Ok(mut orig_value) = orig_str.parse::<i64>() {
+                    // Cast the operand to a number.
+                    if let Ok(operand) = value_str.parse::<i64>() {
+
+                        // Do the needful.
+                        let mut math_ok = true;
+                        match tag.as_str() {
+                            "add" => {
+                                orig_value += operand;
+                            },
+                            "sub" => {
+                                orig_value -= operand;
+                            },
+                            "mult" => {
+                                orig_value *= operand;
+                            },
+                            "div" => {
+                                if operand == 0 {
+                                    insert = format!("[ERR: Can't Divide By Zero]");
+                                    math_ok = false;
+                                } else {
+                                    orig_value /= operand;
+                                }
+                            }
+                            _ => (),
+                        }
+
+                        // Successful math? Save it back to their storage.
+                        if math_ok {
+                            rs.sessions.set(username, HashMap::from([
+                                (name.to_string(), format!("{orig_value}")),
+                            ])).await;
+                        }
+
+                    } else {
+                        insert = format!("[ERR: Math can't '{tag}' a non-numeric value '{value_str}' to the user variable '{name}']");
+                    }
+                } else {
+                    insert = format!("[ERR: The stored user variable '{name}' contains a non-numeric value '{orig_str}'; can not '{tag}' to it]");
+                }
+            },
+            "get" => {
+                // <get> a user variable.
+                insert = rs.sessions.get(username, &data).await;
+            }
+            _ => {
+                // Unrecognized tag; preserve it.
+                insert = format!("\x00{tag_body}\x01");
+            },
         }
 
         reply = reply.replacen(m, &insert, 1);
     }
 
+    // Recover mangled HTML-like tags from the above loop.
+    reply = reply.replace("\x00", "<");
+    reply = reply.replace("\x01", ">");
+
     // Topic setter.
     match crate::regex::TOPIC_TAG.captures(&reply) {
         Some(caps) => {
-            // TODO: set topic.
+            let topic = caps.get(1).unwrap().as_str();
+            rs.sessions.set(username, HashMap::from([
+                ("topic".to_string(), String::from(topic)),
+            ])).await;
             reply = reply.replace(caps.get_match().as_str(), "");
         },
         None => (),
@@ -131,7 +218,7 @@ pub fn process(
     // Inline redirector.
     for (m, [pattern]) in crate::regex::REDIRECT_TAG.captures_iter(&reply.clone()).map(|c| c.extract()) {
         debug!("Inline redirection to: {pattern}");
-        match crate::reply::get_reply(&rs, &username, &pattern.to_string(), false, step+1) {
+        match crate::reply::get_reply(&rs, &username, &pattern.to_string(), false, step+1).await {
             Ok(subreply) => {
                 reply = reply.replace(m, &subreply);
             }

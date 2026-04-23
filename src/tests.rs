@@ -38,9 +38,9 @@ mod tests {
         );
         let ast = parser.parse("test", source).unwrap();
         assert_eq!(ast.version, 2.0);
-        assert_eq!(ast.globals.get("depth").unwrap(), "64");
-        assert_eq!(ast.globals.get("debug").unwrap(), "true");
-        assert_eq!(ast.vars.get("name").unwrap(), "RiveScriptTest Robot");
+        assert_eq!(ast.get_global("depth"), "64");
+        assert_eq!(ast.get_global("debug"), "true");
+        assert_eq!(ast.get_bot_var("name"), "RiveScriptTest Robot");
 
         // Ensure the array parsed in correctly.
         let actual_array = ast.arrays.get("colors").unwrap();
