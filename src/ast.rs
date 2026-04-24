@@ -169,7 +169,7 @@ impl Topic {
 pub struct Trigger {
     pub trigger: String,
     pub reply: Vec<String>,
-    pub condition: Vec<String>, // TODO: richer formatted
+    pub condition: Vec<Condition>,
     pub redirect: String,
     pub previous: String,
 }
@@ -188,6 +188,15 @@ impl Trigger {
     pub fn is_populated(&self) -> bool {
         self.trigger.len() > 0
     }
+}
+
+/// Condition holds the contents of a *Condition command in RiveScript.
+#[derive(Debug, Clone)]
+pub struct Condition {
+    pub left: String,
+    pub operator: String,
+    pub right: String,
+    pub reply: String,
 }
 
 /// Object represents a parsed object macro from a RiveScript source document.

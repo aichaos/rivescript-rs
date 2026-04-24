@@ -23,8 +23,8 @@ The rough roadmap as I see it so far:
         - [x] `* CONDITION`
         - [x] `// COMMENT` and `/* multiline comments */`
         - [x] Object macros (collecting names, languages, source code)
-    - [ ] `! local concat = none|space|newline`
-    - [ ] `! global depth = 25` can change recursion depth
+    - [x] `! local concat = none|space|newline`
+    - [x] `! global depth = 25` can change recursion depth
     - [ ] Syntax checking and strict mode
 - [x] Sorting the replies
     - [x] Sorting +Triggers
@@ -37,11 +37,16 @@ The rough roadmap as I see it so far:
     - [x] `> begin` blocks
     - [x] -Reply, and (weighted) random responses.
     - [x] @Redirect
-    - [ ] %Previous
-    - [ ] *Condition
-    - [ ] Tags:
+    - [x] %Previous
+    - [x] *Condition
+    - [ ] Trigger Tags:
+        - [ ] `[optionals]`
+        - [ ] `@arrays`
+        - [ ] `<bot>` and `<get>` user vars
+        - [ ] `<input>` and `<reply>` tags
+    - [ ] Reply Tags:
         - [x] `<star>, <star1> - <starN>`
-        - [ ] `<botstar>, <botstar1> - <botstarN>` (%Previous)
+        - [x] `<botstar>, <botstar1> - <botstarN>` (%Previous)
         - [x] `<input1> - <input9>` (user vars)
         - [x] `<reply1> - <reply9>` (user vars)
         - [x] `<id>`

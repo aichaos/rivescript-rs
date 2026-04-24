@@ -62,7 +62,6 @@ Type a message to the bot and press Return to send it.",
 
     let mut bot = RiveScript::new();
     bot.utf8 = opt.utf8;
-    bot.depth = 256;
 
     warn!("RiveScript-rs v{}", rivescript::VERSION);
 

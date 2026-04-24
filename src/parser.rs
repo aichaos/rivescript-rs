@@ -13,21 +13,30 @@ const DEFAULT_TOPIC: &str = "random";
 
 pub struct Parser {}
 
-// enum ConcatMode {
-//     None,
-//     Newline,
-//     Space,
-// }
+enum ConcatMode {
+    None,
+    Newline,
+    Space,
+}
 
-// impl ConcatMode {
-//     fn string(self) -> &'static str {
-//         match self {
-//             ConcatMode::None => "",
-//             ConcatMode::Newline => "\n",
-//             ConcatMode::Space => " ",
-//         }
-//     }
-// }
+impl ConcatMode {
+    fn to_string(&self) -> &'static str {
+        match self {
+            ConcatMode::None => "",
+            ConcatMode::Newline => "\n",
+            ConcatMode::Space => " ",
+        }
+    }
+
+    fn parse(v: &str) -> Option<Self> {
+        match v {
+            "none" => Some(ConcatMode::None),
+            "newline" => Some(ConcatMode::Newline),
+            "space" => Some(ConcatMode::Space),
+            _ => None,
+        }
+    }
+}
 
 impl Parser {
     pub fn new() -> Self {
@@ -43,6 +52,7 @@ impl Parser {
         // Local (file-scoped) parser options.
         let mut local_options: HashMap<String, String> = HashMap::new();
         local_options.insert("concat".to_string(), "none".to_string());
+        let mut concat_mode = ConcatMode::None;
 
         // Some temporary state variables as we parse this file.
         let mut topic = String::from(crate::DEFAULT_TOPIC);
@@ -160,6 +170,11 @@ impl Parser {
                             line.push_str(lookahead);
                         }
                     }
+
+                    // Concatenate ^Continue lines with the current concat mode characters.
+                    if cmd != "^" && look_cmd == "^" {
+                        line = format!("{line}{}{lookahead}", concat_mode.to_string());
+                    }
                 }
             }
 
@@ -233,6 +248,15 @@ impl Parser {
                         "local" => {
                             debug!("\tSet local parser option {} = {}", name, value);
                             local_options.insert(name.to_string(), value.to_string());
+
+                            // Changing the ^Continue concatenation mode?
+                            if name == "concat" {
+                                if let Some(v) = ConcatMode::parse(&value) {
+                                    concat_mode = v;
+                                } else {
+                                    warn!("Invalid value for '! local concat': '{value}'");
+                                }
+                            }
                         }
                         "global" => {
                             debug!("\tSet global {} = {}", name, value);
@@ -424,7 +448,29 @@ impl Parser {
 
                 // * Condition
                 "*" => {
-                    current_trigger.condition.push(line.to_string());
+                    // Split everything apart.
+                    let parts: Vec<String> = line.splitn(2, "=>").map(|s| s.to_string()).collect();
+                    let condition = parts.get(0).unwrap().trim();
+                    let reply = parts.get(1).map(|s| s.as_str()).unwrap_or("").trim();
+
+                    // Parse the conditional side.
+                    match crate::regex::CONDITION.captures(&condition) {
+                        Some(caps) => {
+                            let left = caps.get(1).unwrap().as_str();
+                            let operator = caps.get(2).unwrap().as_str();
+                            let right = caps.get(3).unwrap().as_str();
+
+                            current_trigger.condition.push(crate::ast::Condition{
+                                left: left.to_string(),
+                                operator: operator.to_string(),
+                                right: right.to_string(),
+                                reply: reply.to_string(),
+                            });
+                        },
+                        None => {
+                            // TODO: raise syntax error.
+                        },
+                    }
                 }
 
                 // @ Redirect

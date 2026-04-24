@@ -17,5 +17,6 @@ lazy_static! {
     pub static ref ANY_TAG: Regex = Regex::new(r"<([^<]+?)>").unwrap();
     pub static ref NASTIES: Regex = Regex::new(r"[^A-Za-z0-9 ]").unwrap();
     pub static ref ZERO_WIDTH_STAR: Regex = Regex::new(r"^\*$").unwrap();
+    pub static ref CONDITION: Regex = Regex::new(r"^(.+?)\s+(==|eq|!=|ne|<>|<|<=|>|>=)\s+(.*?)$").unwrap();
     pub static ref PLACEHOLDER: Regex = Regex::new(r"\x00(\d+)\x00").unwrap();
 }

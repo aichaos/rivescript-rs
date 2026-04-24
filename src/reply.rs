@@ -17,9 +17,6 @@ struct Message {
 /// Get a reply to the username's message.
 pub async fn reply(rs: &mut RiveScript, username: &str, message: &str) -> Result<String, String> {
 
-    // TODO: Initialize a user profile for the user.
-    // rs.sessions.init(username)
-
     // Store the current user's ID.
     rs.in_reply_context = true;
     rs.current_username = String::from(username);
@@ -28,7 +25,7 @@ pub async fn reply(rs: &mut RiveScript, username: &str, message: &str) -> Result
     let mut answer = String::new();
 
     // Format their message (run substitutions, etc.)
-    msg = format_message(rs, msg);
+    msg = format_message(rs, &msg);
 
     debug!("Find a reply to: {msg}");
 
@@ -109,13 +106,12 @@ pub async fn get_reply(
     if is_begin {
         topic = String::from(crate::BEGIN_TOPIC);
     } else {
-        // TODO: user vars
-        topic = String::from(crate::DEFAULT_TOPIC);
+        topic = rs.sessions.get(username, "topic").await;
     }
 
     // Collect matched regex stars.
     let mut stars: Vec<String> = Vec::new();
-    let mut that_stars: Vec<String> = Vec::new();
+    let mut bot_stars: Vec<String> = Vec::new();
     let mut reply = String::new();
 
     // Avoid letting them fall into a missing topic.
@@ -133,7 +129,72 @@ pub async fn get_reply(
     // redirection. This is because in a redirection, "lastReply" is still gonna
     // be the same as it was the first time, resulting in an infinite loop!
     if step == 0 {
+
+        // Gather all of the topics (inherits/includes).
         // TODO
+        let all_topics: Vec<String> = Vec::from([topic.to_string()]);
+
+        // Scan all the topics.
+        'previous: for topic in all_topics {
+            debug!("Checking topic {topic} for any %Previous's.");
+
+            let triggers = rs.sorted_thats.get(&topic).unwrap();
+            if triggers.len() > 0 {
+                debug!("There's a %Previous in this topic!");
+            }
+
+            for trig in triggers {
+                // Get the bot's last reply to the user.
+                let history = rs.sessions.get_history(username).await;
+                let last_reply = history.reply.get(0).unwrap();
+
+                // Format the bot's last reply the same way as the human's.
+                let last_reply = format_message(rs, last_reply);
+                debug!("Bot's last reply: {last_reply}");
+
+                // See if the bot's last reply matches.
+                let pattern = &trig.previous;
+                let regexp = trigger_regexp(username, pattern);
+                match regexp.captures(&last_reply) {
+                    Some(caps) => {
+                        // Huzzah! See if OUR message is right too...
+                        debug!("Bot side matched!");
+
+                        // Collect the bot stars while we're here.
+                        bot_stars = caps.iter()
+                            .filter_map(
+                                |m|
+                                m.map(|m| m.as_str().to_string())
+                            )
+                            .collect();
+
+                        // Compare the trigger to the user's message.
+                        let pattern = &trig.trigger;
+                        let regexp = trigger_regexp(username, pattern);
+                        match regexp.captures(message) {
+                            Some(caps) => {
+                                // The user side matched too!
+                                // Collect the stars.
+                                stars = caps.iter()
+                                    .filter_map(
+                                        |m|
+                                        m.map(|m| m.as_str().to_string())
+                                    )
+                                    .collect();
+
+                                // Mark that we found a match.
+                                matched = trig;
+                                found_match = true;
+                                break 'previous;
+                            },
+                            None => continue,
+                        }
+                    },
+                    None => continue,
+                }
+            }
+        }
+
     }
 
     // Search their topic for a match to their trigger.
@@ -191,7 +252,55 @@ pub async fn get_reply(
             }
 
             // Check the conditionals.
-            // TODO
+            for row in matched.condition.clone() {
+                // Process tags on the left and right sides.
+                let mut left = crate::tags::process(rs, username, message, &row.left, stars.clone(), bot_stars.clone(), step).await;
+                let mut right = crate::tags::process(rs, username, message, &row.right, stars.clone(), bot_stars.clone(), step).await;
+
+                // Defaults?
+                if left.len() == 0 {
+                    left = crate::UNDEFINED.to_string();
+                }
+                if right.len() == 0 {
+                    right = crate::UNDEFINED.to_string();
+                }
+
+                debug!("Check if [{left}] {} [{right}]", row.operator);
+                let mut passed = false;
+                match row.operator.as_str() {
+                    "eq" | "==" => {
+                        passed = left == right;
+                    },
+                    "ne" | "!=" | "<>" => {
+                        passed = left != right;
+                    },
+                    _ => {
+                        // The other operators deal with numbers.
+                        if let Ok(left_value) = left.parse::<i64>() {
+                            if let Ok(right_value) = right.parse::<i64>() {
+
+                                // Do the needful.
+                                match row.operator.as_str() {
+                                    "<" => passed = left_value < right_value,
+                                    "<=" => passed = left_value <= right_value,
+                                    ">" => passed = left_value > right_value,
+                                    ">=" => passed = left_value >= right_value,
+                                    _ => (),
+                                }
+                            } else {
+                                warn!("Right side of condition was non-numeric: {:?}", row);
+                            }
+                        } else {
+                            warn!("Left side of condition was non-numeric: {:?}", row);
+                        }
+                    },
+                }
+
+                // Did the condition pass?
+                if passed {
+                    reply = row.reply;
+                }
+            }
 
             // Have our reply yet?
             if !reply.is_empty() {
@@ -240,7 +349,7 @@ pub async fn get_reply(
     if is_begin {
         // TODO: set topic and user vars.
     } else {
-        reply = crate::tags::process(&rs, &username, &message, &reply, stars, that_stars, step).await;
+        reply = crate::tags::process(&rs, &username, &message, &reply, stars, bot_stars, step).await;
     }
     // TODO
 
@@ -248,8 +357,8 @@ pub async fn get_reply(
 }
 
 // Format the input message for safe processing.
-pub fn format_message(rs: &RiveScript, msg: String) -> String {
-    let mut msg = msg.clone();
+pub fn format_message(rs: &RiveScript, msg: &str) -> String {
+    let mut msg = String::from(msg);
 
     // Lowercase it.
     if !rs.case_sensitive {

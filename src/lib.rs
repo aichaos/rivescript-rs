@@ -35,6 +35,7 @@ const TAG_OK: &str = "{ok}";
 const UNDEFINED: &str = "undefined";
 const MAX_STARS: usize = 9;
 const MAX_HISTORY: usize = 9;
+const DEFAULT_DEPTH: usize = 50;
 
 /// RiveScript represents a single chatbot personality in memory.
 pub struct RiveScript {
@@ -67,7 +68,7 @@ impl RiveScript {
         Self {
             debug: false,
             utf8: false,
-            depth: 50,
+            depth: DEFAULT_DEPTH,
             case_sensitive: false,
 
             sessions: Arc::new(sessions::memory::MemorySession::new()),
@@ -163,6 +164,12 @@ impl RiveScript {
     fn _stream(&mut self, filename: &str, source: String) -> Result<bool, Box<dyn Error>> {
         let ast = self.parser.parse(filename, source)?;
         self.brain.extend(ast);
+
+        // In case the parse changed the depth variable, update it.
+        if let Ok(depth) = self.brain.get_global("depth").parse() {
+            self.depth = depth;
+        }
+
         Ok(true)
     }
 
