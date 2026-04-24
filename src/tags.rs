@@ -9,7 +9,7 @@ use regex::Regex;
 pub async fn process(
     rs: &crate::RiveScript,
     username: &String,
-    message: &String,
+    _message: &String, // TODO: needed?
     reply: &String,
     stars: Vec<String>,
     bot_stars: Vec<String>,
@@ -207,6 +207,7 @@ pub async fn process(
     match crate::regex::TOPIC_TAG.captures(&reply) {
         Some(caps) => {
             let topic = caps.get(1).unwrap().as_str();
+            debug!("Change user topic to: {topic}");
             rs.sessions.set(username, HashMap::from([
                 ("topic".to_string(), String::from(topic)),
             ])).await;

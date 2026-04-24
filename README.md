@@ -30,7 +30,7 @@ The rough roadmap as I see it so far:
     - [x] Sorting +Triggers
     - [x] Sorting %Previous
     - [x] Sorting substitution lists
-    - [ ] Topic inherits/includes.
+    - [x] Topic inherits/includes.
 - [ ] Fetch a reply for the user
     - [x] User variable storage
     - [x] Substitutions (`! sub`)
@@ -71,7 +71,7 @@ The rough roadmap as I see it so far:
         - [x] `\n`
         - [x] `\/`
         - [x] `\#`
-- [ ] Make it pass the [RiveScript Test Suite](https://github.com/aichaos/rsts) to verify it is _at least_ as accurate as the other 5 implementations.
+- [ ] Make it pass the [RiveScript Test Suite][rsts] to verify it is _at least_ as accurate as the other 5 implementations.
 - [ ] Followup niceties:
     - [ ] A JavaScript interpreter for built-in support for JS object macros.
     - [ ] Pluggable user variable session drivers (with e.g. Redis implementation).
@@ -114,9 +114,51 @@ other programming languages RiveScript was written in:
   for `%Previous` underneath triggers. In rivescript-rs we only look
   ahead for `^Continue` and process `%Previous` in the normal command
   switch similar to `@Redirect` or `*Condition`
+* A long-standing bug with topic inheritance/includes was uncovered!
+
+    In the eg/brain/rpg.rive `rpg demo` that demonstrates the feature, the
+    game would get stuck in topic `puzzle1` because of a conflict with the
+    included topic `puzzle` having a duplicate trigger for "west" which
+    caused the user to always be taken back to the beginning of the puzzle.
+
+    A very long time ago, RiveScript implementations kept the sorted list
+    of triggers in-memory as being a simple list of strings (`Vec<String>`),
+    and when the user matched a trigger, the reply details for it were looked
+    up from a HashMap. However, that HashMap approach made it impossible to
+    have duplicate triggers (as you might want to have when using %Previous,
+    e.g. the bot could ask multiple yes/no questions and you could program a
+    trigger for `yes` having a %Previous pointing to the bot's question, but
+    multiple `yes` triggers would trample over that).
+
+    Somewhere between 2012-2014, in the "v1.0" era of the JavaScript and
+    Python ports to RiveScript, the sorted trigger set was changed to hold the
+    full response data too, but this introduced a bug in the way that the
+    topic inherits/includes feature worked.
+
+    With "included" topics, the sets of triggers for all topics are treated
+    as equals and sorted amongst themselves, with only "inherited" topics
+    having their own priority. Anyway, since `puzzle1` had a "duplicate"
+    trigger "west" shared by included topic `puzzle`, and with the ordering,
+    both triggers were added to the sort list but not in the correct order
+    (letting puzzle2's version match first).
+
+    This is fixed in the Rust port, by having `inherits::get_topic_triggers`
+    prioritize adding the local topic's triggers _first_, while de-duplicating
+    copies of those triggers from included topics (allowing the local topic's
+    trigger to "shadow" the included one's), before finally mixing in the
+    inherited topics. The result is that when sort_replies() is finally doing
+    the final sort (by {weight} and inheritance level, etc.), only one copy of
+    the `west` trigger exists (from `puzzle1` which over-shadowed `puzzle`)
+    resulting in the Rust port of RiveScript being the only one in the last
+    14 years that can play the RPG demo correctly.
+
+    Apparently also, the [RiveScript Test Suite][rsts] doesn't exercise this
+    feature of RiveScript at all so the bug went unnoticed for many years!
 
 # License
 
 This module will be released under MIT when it becomes functional.
 
 Copyright © 2022-2026 Noah Petherbridge.
+
+[rsts]: https://github.com/aichaos/rsts

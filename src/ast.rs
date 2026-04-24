@@ -1,6 +1,4 @@
-use std::{collections::HashMap, sync::{Mutex, RwLock}};
-
-use log::debug;
+use std::{collections::HashMap, sync::RwLock};
 
 /// Root of the "abstract syntax tree" representing a RiveScript
 /// source document and its useful contents.
@@ -29,8 +27,9 @@ pub struct AST {
 /// `{topic=random}`. A user can ONLY match triggers that are defined
 /// in their current topic, or any triggers that are 'included' or
 /// 'inherited' into their current topic.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Topic {
+    pub name: String,
     pub triggers: Vec<Trigger>,
     pub includes: HashMap<String, bool>,
     pub inherits: HashMap<String, bool>,
@@ -96,6 +95,7 @@ impl AST {
         self.topics.insert(
             name.to_string(),
             Topic {
+                name: name.to_string(),
                 triggers: Vec::new(),
                 includes: HashMap::new(),
                 inherits: HashMap::new(),

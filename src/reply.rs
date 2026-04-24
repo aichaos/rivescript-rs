@@ -1,16 +1,10 @@
-use std::error::Error;
 use async_recursion::async_recursion;
 use rand::seq::IndexedRandom;
 
 use log::{debug, warn};
 use ::regex::Regex;
 
-use crate::{RiveScript, ast};
-
-struct Message {
-    username: String,
-    message: String,
-}
+use crate::{RiveScript, ast, inheritance};
 
 /// Get a reply to the username's message.
 pub async fn reply(rs: &mut RiveScript, username: &str, message: &str) -> Result<String, String> {
@@ -114,7 +108,7 @@ pub async fn get_reply(
 
     // Avoid letting them fall into a missing topic.
     if !rs.brain.has_topic(&topic) {
-        warn!("User {username} was in an empty topic named '{topic}'");
+        warn!("User {username} was in an empty topic named '{topic}' - rescuing them back to '{}'", crate::DEFAULT_TOPIC);
         topic = String::from(crate::DEFAULT_TOPIC)
     }
 
@@ -129,8 +123,8 @@ pub async fn get_reply(
     if step == 0 {
 
         // Gather all of the topics (inherits/includes).
-        // TODO
-        let all_topics: Vec<String> = Vec::from([topic.to_string()]);
+        let this_topic = rs.brain.topics.get(&topic).unwrap();
+        let all_topics = inheritance::get_topic_tree(&rs.brain, &this_topic, 0);
 
         // Scan all the topics.
         'previous: for topic in all_topics {
@@ -197,7 +191,7 @@ pub async fn get_reply(
 
     // Search their topic for a match to their trigger.
     if !found_match {
-        debug!("Searching their topic for a match...");
+        debug!("Searching their topic ({topic}) for a match...");
         let triggers = rs.sorted_topics.get(&topic).unwrap();
         for trig in triggers {
             let pattern = &trig.trigger;

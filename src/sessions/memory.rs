@@ -10,7 +10,6 @@ pub struct MemorySession {
     // Map of Username -> (Map of Key -> Value)
     // users: RwLock<HashMap<String, HashMap<String, String>>>,
     users: RwLock<HashMap<String, UserData>>,
-    frozen: RwLock<HashMap<String, HashMap<String, String>>>,
 }
 
 #[derive(Clone)]
@@ -44,7 +43,6 @@ impl MemorySession {
     pub fn new() -> Self {
         Self {
             users: RwLock::new(HashMap::new()),
-            frozen: RwLock::new(HashMap::new()),
         }
     }
 }

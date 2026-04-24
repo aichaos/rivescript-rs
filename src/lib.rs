@@ -8,11 +8,12 @@
 use crate::ast::AST;
 use crate::parser::Parser;
 use log::{debug, warn};
-use std::{collections::HashMap, error::Error, fs, string, sync::Arc};
+use std::{collections::HashMap, error::Error, fs, sync::Arc};
 use Result::Ok;
 
 mod ast;
 mod errors;
+mod inheritance;
 mod parser;
 mod regex;
 mod reply;
@@ -192,11 +193,22 @@ impl RiveScript {
         debug!("sorted_subs: {:#?}", self.sorted_subs);
         debug!("sorted_person: {:#?}", self.sorted_person);
     }
+
     /// Get a reply from the chatbot.
     pub async fn reply(&mut self, username: &str, message: &str) -> Result<String, String> {
         // let msg = reply::Message{
         //     username: String::from("username"),
         // }
         reply::reply(self, username, message).await
+    }
+
+    /// Debugging: print the loaded bot's brain (AST) to console.
+    pub fn debug_print_brain(&self) {
+        println!("{:#?}", self.brain);
+    }
+
+    /// Debugging: print the sorted trigger lists.
+    pub fn debug_sorted_replies(&self) {
+        println!("{:#?}", self.sorted_topics);
     }
 }

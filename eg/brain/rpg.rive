@@ -67,6 +67,10 @@
 
 	+ down
 	- You can't go in that direction.
+
+	// For debugging: manually jump into any topic.
+	+ debug set topic *
+	- {topic=<star>}Moved to topic <star>.
 < topic
 
 /////////////

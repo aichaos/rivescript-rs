@@ -98,13 +98,36 @@ Type a message to the bot and press Return to send it.",
             .read_line(&mut message)
             .expect("Failed to read line");
 
-        match bot.reply("localuser", &message).await {
-            Ok(reply) => {
-                println!("Bot> {reply}");
+
+        // Process commands.
+        match message.trim() {
+            "/help" => {
+                println!("/dump-ast: pretty-print the loaded brain AST contents");
+                println!("/help: show this help message");
+                println!("/quit: exit the program");
             },
-            Err(e) => {
-                debug!("Error: {e}");
+            "/dump-ast" => {
+                bot.debug_print_brain();
+            },
+            "/dump-sorted" => {
+                bot.debug_sorted_replies();
+            },
+            "/quit" => {
+                println!("Bye!");
+                break;
             }
-        };
+            _ => {
+                // Get a reply from the bot.
+                match bot.reply("localuser", &message).await {
+                    Ok(reply) => {
+                        println!("Bot> {reply}");
+                    },
+                    Err(e) => {
+                        debug!("Error: {e}");
+                    }
+                };
+            }
+        }
+
     }
 }

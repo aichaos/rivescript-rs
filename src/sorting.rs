@@ -1,10 +1,10 @@
 // Data sorting logic.
 
-use itertools::{Itertools, sorted};
+use itertools::Itertools;
 use log::{debug, warn};
 
-use crate::{ast, regex, errors::ParseError};
-use std::{cmp::Reverse, collections::HashMap, error::Error};
+use crate::{ast, inheritance, regex, errors::ParseError};
+use std::{cmp::Reverse, collections::HashMap};
 
 // struct Trigger {
 //     text: String,
@@ -28,8 +28,6 @@ pub fn sort_triggers(brain: &ast::AST) -> Result<SortedResult, ParseError> {
         subs: Vec::new(),
         person: Vec::new(),
     };
-    // let mut sorted_topics: HashMap<String, Vec<ast::Trigger>> = HashMap::new();
-    // let mut sorted_thats: HashMap<String, Vec<ast::Trigger>> = HashMap::new();
 
     // If there are no topics, give an error.
     if brain.topics.len() == 0 {
@@ -47,14 +45,15 @@ pub fn sort_triggers(brain: &ast::AST) -> Result<SortedResult, ParseError> {
         let topic = brain.topics.get(name).unwrap();
         debug!("Analyzing topic {}", name);
 
-        // TODO: inherits/includes
-        let all_triggers = get_topic_triggers(topic, false);
+        // Collect all of the triggers we're going to worry about, including triggers
+        // belonging to an included or inherited topic.
+        let all_triggers = inheritance::get_topic_triggers(brain, topic, false);
 
         // Sort these triggers.
         result.topics.insert(name.to_string(), sort_trigger_set(all_triggers.to_vec()));
 
         // Get all of the %Previous triggers.
-        let that_triggers = get_topic_triggers(topic, true);
+        let that_triggers = inheritance::get_topic_triggers(brain, topic, true);
 
         // And sort them, too.
         result.thats.insert(name.to_string(), sort_trigger_set(that_triggers));
@@ -65,24 +64,6 @@ pub fn sort_triggers(brain: &ast::AST) -> Result<SortedResult, ParseError> {
     result.person = sort_list(brain.person.clone());
 
     Ok(result)
-}
-
-/// Get all of the triggers belonging to a topic, including inherited/included topics.
-///
-/// Pass a true value for `thats` to return triggers that have a `%Previous`. By default,
-/// those triggers will be skipped.
-fn get_topic_triggers(topic: &ast::Topic, thats: bool) -> Vec<ast::Trigger> {
-    let mut in_this_topic: Vec<ast::Trigger> = Vec::new();
-
-    for trigger in topic.triggers.clone() {
-        if !thats {
-            in_this_topic.push(trigger);
-        } else if !trigger.previous.is_empty() {
-            in_this_topic.push(trigger);
-        }
-    }
-
-    in_this_topic
 }
 
 /// Sort a group of triggers in an optimal sorting order.
@@ -110,8 +91,6 @@ fn sort_trigger_set(triggers: Vec<ast::Trigger>) -> Vec<ast::Trigger> {
         vt.insert(vt.len(), trigger);
         prior.insert(weight, vt);
     }
-
-    warn!("Prior map: {:#?}", prior);
 
     // Sort the priority values by largest first.
     // let sorted_priorities: Vec<isize> = Vec::new();
@@ -226,10 +205,6 @@ fn sort_trigger_set(triggers: Vec<ast::Trigger>) -> Vec<ast::Trigger> {
 
         }
 
-        // Move the triggers with no {inherits} tag to the bottom of the stack.
-        let no_inherits = track.remove(&-1).unwrap();
-        track.insert(highest_inherits+1, no_inherits);
-
         // Sort the track (inherits levels) from the lowest to the highest.
         let mut track_sorted: Vec<isize> = Vec::new();
         for k in track.keys() {
@@ -241,7 +216,6 @@ fn sort_trigger_set(triggers: Vec<ast::Trigger>) -> Vec<ast::Trigger> {
         for ip in track_sorted {
             // debug!("ip={ip} track={:?}", track);
             let ip_track = track.entry(ip).or_insert_with(SortTracker::new);
-            // debug!("ip_track={:?}", ip_track);
 
             // Sort each of the main kinds of triggers by their word counts.
             sort_by_words(&mut running, &ip_track.atomic);
@@ -358,8 +332,6 @@ fn sort_by_words(running: &mut Vec<ast::Trigger>, triggers: &HashMap<isize, Vec<
     }
     sorted_wc.sort_by_key(|k| Reverse(*k));
 
-    // debug!("sorted_wc: {:?}", sorted_wc);
-
     for wc in sorted_wc {
 
         // Triggers with equal word counts should be sorted by overall text length.
@@ -376,7 +348,14 @@ fn sort_by_words(running: &mut Vec<ast::Trigger>, triggers: &HashMap<isize, Vec<
         sorted_patterns.sort_by(|a, b| b.len().cmp(&a.len()));
 
         // Add the triggers to the running bucket.
+        let mut distinct_pattern: HashMap<String, bool> = HashMap::new();
         for pattern in sorted_patterns {
+            // Ensure unique patterns.
+            if distinct_pattern.contains_key(&pattern) {
+                continue;
+            }
+            distinct_pattern.insert(pattern.clone(), true);
+
             let entries = pattern_map.get(&pattern).unwrap();
             for entry in entries {
                 debug!("sort_by_words: wc={wc} pattern={pattern}");

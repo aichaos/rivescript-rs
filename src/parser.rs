@@ -345,16 +345,17 @@ impl Parser {
                         "topic" => {
                             ast.init_topic(&name);
 
-                            // Set the pointer for triggers to enter this topic.
-                            topic = name.to_string();
-
                             // If we parsed a last trigger, commit and flush it
                             // ahead of the topic change.
                             if current_trigger.is_populated() {
+                                debug!("Starting a new topic, commit the current trigger to topic {topic}: {:?}", current_trigger);
                                 let t = ast.topics.get_mut(&topic).expect("or else");
                                 t.add_trigger(current_trigger);
                             }
                             current_trigger = Trigger::new("");
+
+                            // Set the pointer for triggers to enter this topic.
+                            topic = name.to_string();
 
                             // Does this topic inherit or include another?
                             let mut mode = String::from("");
