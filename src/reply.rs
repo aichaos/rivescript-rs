@@ -6,8 +6,6 @@ use log::{debug, warn};
 use ::regex::Regex;
 
 use crate::{RiveScript, ast};
-use crate::errors::ParseError;
-use crate::regex;
 
 struct Message {
     username: String,
@@ -154,7 +152,7 @@ pub async fn get_reply(
 
                 // See if the bot's last reply matches.
                 let pattern = &trig.previous;
-                let regexp = trigger_regexp(username, pattern);
+                let regexp = trigger_regexp(rs, username, pattern).await;
                 match regexp.captures(&last_reply) {
                     Some(caps) => {
                         // Huzzah! See if OUR message is right too...
@@ -170,7 +168,7 @@ pub async fn get_reply(
 
                         // Compare the trigger to the user's message.
                         let pattern = &trig.trigger;
-                        let regexp = trigger_regexp(username, pattern);
+                        let regexp = trigger_regexp(rs, username, pattern).await;
                         match regexp.captures(message) {
                             Some(caps) => {
                                 // The user side matched too!
@@ -203,7 +201,7 @@ pub async fn get_reply(
         let triggers = rs.sorted_topics.get(&topic).unwrap();
         for trig in triggers {
             let pattern = &trig.trigger;
-            let regexp = trigger_regexp(username, pattern);
+            let regexp = trigger_regexp(rs, username, pattern).await;
             debug!("Compare:{regexp}");
 
             match regexp.captures(message) {
@@ -311,7 +309,7 @@ pub async fn get_reply(
             // Process {weight} in the replies.
             let mut bucket: Vec<String> = Vec::new();
             for rep in matched.reply.clone() {
-                match regex::WEIGHT.captures(&rep) {
+                match crate::regex::WEIGHT.captures(&rep) {
                     Some(caps) => {
                         let weight: usize = caps.get(1).unwrap().as_str().parse().unwrap();
                         for _ in 0..weight {
@@ -380,12 +378,12 @@ pub fn format_message(rs: &RiveScript, msg: &str) -> String {
 }
 
 // Prepare a trigger pattern for the regular expression engine.
-pub fn trigger_regexp(username: &String, pattern: &String) -> Regex {
+pub async fn trigger_regexp(rs: &RiveScript, username: &String, pattern: &String) -> Regex {
     let mut pattern = pattern.clone();
 
     // If the trigger is simply '*' then the * needs to become (.*?)
     // instead of the usual (.+?), to match the blank string too.
-    pattern = regex::ZERO_WIDTH_STAR.replace_all(&pattern, "<zerowidthstar>").to_string();
+    pattern = crate::regex::ZERO_WIDTH_STAR.replace_all(&pattern, "<zerowidthstar>").to_string();
 
     // Simple replacements.
     pattern = pattern.replace("*", r"(.+?)");  // *
@@ -393,16 +391,110 @@ pub fn trigger_regexp(username: &String, pattern: &String) -> Regex {
     pattern = pattern.replace("_", r"(\w+?)"); // _
 
     // Remove {weight} and {inherits}
-    pattern = regex::WEIGHT.replace_all(&pattern, "").to_string();
-    pattern = regex::INHERITS.replace_all(&pattern, "").to_string();
+    pattern = crate::regex::WEIGHT.replace_all(&pattern, "").to_string();
+    pattern = crate::regex::INHERITS.replace_all(&pattern, "").to_string();
 
     // Recover the zero-width star.
     pattern = pattern.replace("<zerowidthstar>", r"(.*?)");
 
     // UTF-8 mode special characters.
-    // TODO
+    if rs.utf8 {
+        // Literal @ symbols (like in an e-mail address) conflict with arrays. If the RiveScript
+        // trigger had an escaped '\@' sequence, move it out of the way first.
+        pattern = pattern.replace(r"\@", r"\u0040");
+    }
 
-    // TODO: Optionals, Arrays, Bot/User Vars, Input/Reply Tags
+    // Optionals.
+    for (_, [inner]) in crate::regex::TRIGGER_OPTIONALS.captures_iter(&pattern.clone()).map(|c| c.extract()) {
+        let parts: Vec<String> = inner.split("|").map(|s| s.to_string()).collect();
+        let mut options: Vec<String> = Vec::new();
+
+        for p in parts {
+            options.push(format!(r"(?:\s|\b)+{}(?:\s|\b)+", p));
+        }
+
+        // If this optional had a star or anything in it, make it non-capturing.
+        let mut pipes = options.join("|");
+        pipes = pipes.replace(r"(.+?)", r"(?:.+?)");
+        pipes = pipes.replace(r"(\d+?)", r"(?:\d+?)");
+        pipes = pipes.replace(r"(\w+?)", r"(?:\w+?)");
+
+        // Substitute the original [optional] greedily back into the pattern.
+        let qm = regex::escape(&inner);
+        let replacement = format!(r"(?:{}|(?:\s+|\b))", pipes);
+
+        pattern = Regex::new(&String::from(format!(r"\s*\[{qm}\]\s*")))
+            .unwrap()
+            .replace_all(&pattern, &replacement)
+            .to_string();
+    }
+
+    // Don't let _ wildcards match numbers!
+    // A quick note on why it's this way: the initial replacement above that
+    // swaps (_ => (\w+?)) needed to be \w because the square brackets
+    // in [\s\d] will confuse the optionals logic just above. So then we
+    // switch it back down here. Also, we don't just use \w+ because that
+    // will match digits, and similarly [A-Za-z] would not match Unicode.
+    pattern = pattern.replace(r"\w", r"[^\s\d]");
+
+    // Filter in arrays.
+    for (m, [name]) in crate::regex::TRIGGER_ARRAY.captures_iter(&pattern.clone()).map(|c| c.extract()) {
+        let mut replacement = String::new();
+        if let Some(items) = rs.brain.arrays.get(name) {
+            replacement = format!(r"(?:{})", items.join("|"));
+        }
+        pattern = pattern.replace(m, &replacement);
+    }
+
+    // Filter in bot variables.
+    for (m, [name]) in crate::regex::BOT_TAG.captures_iter(&pattern.clone()).map(|c| c.extract()) {
+        let mut replacement = rs.brain.get_bot_var(name);
+        replacement = strip_nasties(replacement).to_lowercase();
+        pattern = pattern.replace(m, &replacement);
+    }
+
+    // Filter in <get> user variables.
+    for (m, [name]) in crate::regex::USER_VAR_TAG.captures_iter(&pattern.clone()).map(|c| c.extract()) {
+        let mut replacement = rs.sessions.get(username, name).await;
+        replacement = strip_nasties(replacement).to_lowercase();
+        pattern = pattern.replace(m, &replacement);
+    }
+
+    // Filter in <input>/<reply> tags.
+    if pattern.contains("<input") || pattern.contains("<reply") {
+        pattern = pattern.replace("<input>", "<input1>");
+        pattern = pattern.replace("<reply>", "<reply1>");
+        let history = rs.sessions.get_history(username).await;
+
+        for (_, [number]) in crate::regex::HISTORY_TAG.captures_iter(&pattern.clone()).map(|c| c.extract()) {
+            let mut idx: usize = 1;
+            if !number.is_empty() {
+                idx = number.parse().unwrap();
+            }
+
+            let input = history.input.get(idx-1).unwrap();
+            let reply = history.reply.get(idx-1).unwrap();
+
+            // Format the previous inputs for the regexp engine.
+            let input = &format_message(rs, input);
+            let reply = &format_message(rs, reply);
+
+            pattern = pattern.replace(
+                &String::from(format!("<input{idx}>")),
+                input,
+            );
+            pattern = pattern.replace(
+                &String::from(format!("<reply{idx}>")),
+                reply,
+            );
+        }
+    }
+
+    // Recover escaped Unicode symbols (@ signs).
+    if rs.utf8 && pattern.contains(r"\u") {
+        // TODO: make it more general.
+        pattern = pattern.replace(r"\u0040", "@");
+    }
 
     pattern = String::from(format!(r"^{}$", pattern));
 
@@ -411,6 +503,6 @@ pub fn trigger_regexp(username: &String, pattern: &String) -> Regex {
 
 pub fn strip_nasties(msg: String) -> String {
     let mut msg = msg.clone();
-    msg = regex::NASTIES.replace_all(&msg, "").to_string();
+    msg = crate::regex::NASTIES.replace_all(&msg, "").to_string();
     msg
 }

@@ -39,11 +39,11 @@ The rough roadmap as I see it so far:
     - [x] @Redirect
     - [x] %Previous
     - [x] *Condition
-    - [ ] Trigger Tags:
-        - [ ] `[optionals]`
-        - [ ] `@arrays`
-        - [ ] `<bot>` and `<get>` user vars
-        - [ ] `<input>` and `<reply>` tags
+    - [x] Trigger Tags:
+        - [x] `[optionals]`
+        - [x] `@arrays`
+        - [x] `<bot>` and `<get>` user vars
+        - [x] `<input>` and `<reply>` tags
     - [ ] Reply Tags:
         - [x] `<star>, <star1> - <starN>`
         - [x] `<botstar>, <botstar1> - <botstarN>` (%Previous)
