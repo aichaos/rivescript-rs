@@ -44,7 +44,7 @@ The rough roadmap as I see it so far:
         - [x] `@arrays`
         - [x] `<bot>` and `<get>` user vars
         - [x] `<input>` and `<reply>` tags
-    - [ ] Reply Tags:
+    - [x] Reply Tags:
         - [x] `<star>, <star1> - <starN>`
         - [x] `<botstar>, <botstar1> - <botstarN>` (%Previous)
         - [x] `<input1> - <input9>` (user vars)
@@ -65,7 +65,7 @@ The rough roadmap as I see it so far:
         - [x] `{sentence}, <sentence>`
         - [x] `{uppercase}, <uppercase>`
         - [x] `{lowercase}, <lowercase>`
-        - [ ] `<call>` (object macros)
+        - [x] `<call>` (object macros)
         - [x] `{ok}`
         - [x] `\s`
         - [x] `\n`
@@ -154,6 +154,32 @@ other programming languages RiveScript was written in:
 
     Apparently also, the [RiveScript Test Suite][rsts] doesn't exercise this
     feature of RiveScript at all so the bug went unnoticed for many years!
+
+    The JavaScript, Python and Go ports of RiveScript all shared the bug, with
+    only the original Perl version (with its legacy implementation) working
+    correctly.
+* Object macros (Rust subroutines) posed an interesting dilemma!
+
+    In most RiveScript implementations, Subroutines can be defined in the
+    native programming language and they tended to accept a reference to the
+    master RiveScript struct as their first parameter (so they could get/set
+    user variables or manipulate the bot's inner state).
+
+    (Subroutines with a function signature like `(*RiveScript, []args)` can)
+    be invoked from a RiveScript reply with the `<call>name args...</call>`
+    syntax and have the subroutine's result substituted in its place).
+
+    For the Rust borrow checker, it wasn't possible to share a mutable
+    RiveScript with the Subroutine, so instead a Proxy object is sent in.
+    The Proxy has a subset of RiveScript functions that the subroutine might
+    want (to get/set variables, etc.), and when Reading a variable it will
+    come directly from RiveScript or its user variable session store. The
+    Proxy also stages writes to variables using its own HashMap, so if you
+    set_uservar and then get_uservar you will get the staged copy while within
+    your Subroutine, and then RiveScript will commit the staged changes after
+    your Subroutine returns.
+
+    See src/main.rs and eg/brain/rust.rive for examples and details.
 
 # License
 

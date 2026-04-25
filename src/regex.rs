@@ -20,6 +20,7 @@ lazy_static! {
     pub static ref BOT_TAG: Regex = Regex::new(r"<bot (.+?)>").unwrap();
     pub static ref USER_VAR_TAG: Regex = Regex::new(r"<get (.+?)>").unwrap();
     pub static ref HISTORY_TAG: Regex = Regex::new(r"<(?:input|reply)(\d+?)>").unwrap();
+    pub static ref CALL_TAG: Regex = Regex::new(r"<call>(.+?)</call>").unwrap();
     pub static ref NASTIES: Regex = Regex::new(r"[^A-Za-z0-9 ]").unwrap();
     pub static ref ZERO_WIDTH_STAR: Regex = Regex::new(r"^\*$").unwrap();
     pub static ref CONDITION: Regex = Regex::new(r"^(.+?)\s+(==|eq|!=|ne|<>|<|<=|>|>=)\s+(.*?)$").unwrap();

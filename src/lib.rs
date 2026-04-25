@@ -6,14 +6,17 @@
 //! language author.
 
 use crate::ast::AST;
+use crate::macros::proxy::{Proxy, SubroutineResult};
 use crate::parser::Parser;
 use log::{debug, warn};
 use std::{collections::HashMap, error::Error, fs, sync::Arc};
+use futures::future::BoxFuture;
 use Result::Ok;
 
 mod ast;
 mod errors;
 mod inheritance;
+mod macros;
 mod parser;
 mod regex;
 mod reply;
@@ -52,6 +55,7 @@ pub struct RiveScript {
     sorted_thats: HashMap<String, Vec<ast::Trigger>>,
     sorted_subs: Vec<String>,
     sorted_person: Vec<String>,
+    subroutines: HashMap<String, macros::Subroutine>,
 
     // Runtime (in-reply) variables.
     in_reply_context: bool,
@@ -79,6 +83,7 @@ impl RiveScript {
             sorted_thats: HashMap::new(),
             sorted_subs: Vec::new(),
             sorted_person: Vec::new(),
+            subroutines: HashMap::new(),
 
             in_reply_context: false,
             current_username: String::new(),
@@ -200,6 +205,49 @@ impl RiveScript {
         //     username: String::from("username"),
         // }
         reply::reply(self, username, message).await
+    }
+
+    /// Define an object macro handler from a Rust function.
+    ///
+    /// This is a named function that you can call from RiveScript using the `<call>` tag. The parameters
+    /// to your function will be the RiveScript interpreter and the array of arguments (shell quote style)
+    /// passed in to the call.
+    ///
+    /// Example: `<call>example "hello world"</call>`
+    pub fn set_subroutine<F>(&mut self, name: &str, f: F)
+    where
+        F: for<'a> Fn(&'a mut Proxy<'a>, Vec<String>) -> BoxFuture<'a, Result<SubroutineResult, String>> + Send + Sync + 'static
+    {
+        self.subroutines.insert(name.to_string(), Box::new(f));
+    }
+
+    /// Get the current user's username.
+    ///
+    /// This is only valid from within a reply context, e.g. from a Rust object macro subroutine.
+    pub fn current_username(&self) -> Result<String, String> {
+        if !self.in_reply_context {
+            Err("current_username is only valid during a reply context".to_string())
+        } else {
+            Ok(self.current_username.to_string())
+        }
+    }
+
+    /// Set a user variable for a user.
+    ///
+    /// Equivalent to `<set name=value>` in RiveScript for the username.
+    pub async fn set_uservar(&self, username: &str, name: &str, value: &str) {
+        self.sessions.set(username, HashMap::from([
+            (name.to_string(), value.to_string()),
+        ])).await
+    }
+
+    /// Get a user variable from a user.
+    ///
+    /// Equivalent to `<get name>` in RiveScript.
+    ///
+    /// Returns the string "undefined" if not set.
+    pub async fn get_uservar(&self, username: &str, name: &str) -> String {
+        self.sessions.get(username, name).await
     }
 
     /// Debugging: print the loaded bot's brain (AST) to console.

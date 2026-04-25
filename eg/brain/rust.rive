@@ -1,0 +1,92 @@
+! version = 2.0
+
+/*
+This example demonstrates RiveScript Object Macro handlers written in Rust.
+
+All implementations of RiveScript support object macros written in their native
+programming language, and usually, the Subroutine function handler is given a
+reference to the master RiveScript struct as its first parameter. This way, the
+subroutine is able to get/set user variables and change the bot's internal
+state.
+
+For the Rust port, due to strict borrow checking rules, the Subroutine is
+given a Proxy object instead which exposes a smaller subset of RiveScript
+methods. When the Proxy is told to mutate user/bot variables, it holds a
+'staged' copy internally (so subsequent calls to Get the variable within the
+same Subroutine would get the staged copy).
+
+The examples in this file get and set user and bot variables.
+
+The default `rivescript` binary as part of the Rust crate implements these
+subroutines, so if you are testing RiveScript out of the git repo these
+examples should just work. To implement the Rust subroutines yourself, the
+code would look like this:
+
+    let mut bot = RiveScript::new();
+
+    // User variable setter subroutine.
+    bot.set_subroutine("rust-set", |proxy, args| {
+        async move {
+            if args.len() >= 2 {
+                let username = proxy.current_username().unwrap_or(String::new());
+
+                let name = args.get(0).unwrap();
+                let value = args.get(1).unwrap();
+                let orig_value = proxy.get_uservar(&name).await;
+
+                proxy.set_uservar(name, value).await;
+                let staged_value = proxy.get_uservar(&name).await;
+
+                return proxy.finish(format!("For username {username}: The original variable '{name}' was '{orig_value}' and I have updated it to '{value}' (staged value: '{staged_value}')"));
+            }
+            proxy.finish("Usage: rust-set name value".to_string())
+        }.boxed()
+    });
+
+    // Bot variable setter subroutine.
+    bot.set_subroutine("rust-bot-set", |proxy, args| {
+        async move {
+            if args.len() >= 2 {
+                let name = args.get(0).unwrap();
+                let value = args.get(1).unwrap();
+                let orig_value = proxy.get_variable(&name);
+
+                proxy.set_variable(name, value);
+                let staged_value = proxy.get_variable(&name);
+
+                return proxy.finish(format!("The original bot variable '{name}' was '{orig_value}' and I have updated it to '{value}' (staged value: '{staged_value}')"));
+            }
+            proxy.finish("Usage: rust-set name value".to_string())
+        }.boxed()
+    });
+
+During your conversation with the chatbot, using the default example brain
+for its other replies, the conversation to test these macros might go like:
+
+    You> what is my name?
+    Bot> Your name is undefined.
+
+    You> rust set name soandso
+    Bot> For username localuser: The original variable 'name' was 'undefined'
+         and I have updated it to 'soandso' (staged value: 'soandso').
+
+    You> what is my name?
+    Bot> Your name is soandso.
+
+    You> what is YOUR name?
+    Bot> I am Aiden.
+
+    You> rust botvar set name casey
+    Bot> The original bot variable 'name' was 'Aiden' and I have updated it to
+         'casey' (staged value: 'casey')
+
+    You> what is your name?
+    Bot> I am casey.
+*/
+
+// An example to call a Rust object macro handler.
++ rust set * *
+- <call>rust-set <star1> "<star2>"</call>
+
++ rust botvar set * *
+- <call>rust-bot-set <star1> "<star2>"</call>

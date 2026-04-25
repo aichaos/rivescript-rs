@@ -1,6 +1,7 @@
 use env_logger;
 use log::{debug, warn};
 use rivescript::RiveScript;
+use futures::FutureExt;
 use std::{env, fs, io, io::Write, path::PathBuf, process::exit};
 use structopt::StructOpt;
 
@@ -64,6 +65,40 @@ Type a message to the bot and press Return to send it.",
     bot.utf8 = opt.utf8;
 
     warn!("RiveScript-rs v{}", rivescript::VERSION);
+
+    // An example object macro written in Rust.
+    bot.set_subroutine("rust-set", |proxy, args| {
+        async move {
+            if args.len() >= 2 {
+                let username = proxy.current_username().unwrap_or(String::new());
+
+                let name = args.get(0).unwrap();
+                let value = args.get(1).unwrap();
+                let orig_value = proxy.get_uservar(&name).await;
+
+                proxy.set_uservar(name, value).await;
+                let staged_value = proxy.get_uservar(&name).await;
+
+                return proxy.finish(format!("For username {username}: The original variable '{name}' was '{orig_value}' and I have updated it to '{value}' (staged value: '{staged_value}')"));
+            }
+            proxy.finish("Usage: rust-set name value".to_string())
+        }.boxed()
+    });
+    bot.set_subroutine("rust-bot-set", |proxy, args| {
+        async move {
+            if args.len() >= 2 {
+                let name = args.get(0).unwrap();
+                let value = args.get(1).unwrap();
+                let orig_value = proxy.get_variable(&name);
+
+                proxy.set_variable(name, value);
+                let staged_value = proxy.get_variable(&name);
+
+                return proxy.finish(format!("The original bot variable '{name}' was '{orig_value}' and I have updated it to '{value}' (staged value: '{staged_value}')"));
+            }
+            proxy.finish("Usage: rust-set name value".to_string())
+        }.boxed()
+    });
 
     // Load all the input files/directories in order.
     for pathbuf in opt.files {

@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
+use crate::macros::proxy::Proxy;
+
 use rand::seq::IndexedRandom;
+use shell_words;
 
 use log::debug;
 use regex::Regex;
@@ -91,6 +94,9 @@ pub async fn process(
 
     // Handle all variable-related tags with an iterative regexp approach to
     // allow for nesting of tags in arbitrary ways (think <set a=<get b>>).
+    // Move the <call> tags out of the way first.
+    reply = reply.replace("<call>", "{__call__}");
+    reply = reply.replace("</call>", "{/__call__}");
     for (m, [tag_body]) in crate::regex::ANY_TAG.captures_iter(&reply.clone()).map(|c| c.extract()) {
         let parts: Vec<String> = tag_body.splitn(2, " ").map(|s| s.to_string()).collect();
         let tag = parts.get(0).unwrap();
@@ -227,7 +233,58 @@ pub async fn process(
         };
     }
 
-    // TODO: object macros.
+    // Finally, handle object macros.
+    reply = reply.replace("{__call__}", "<call>");
+    reply = reply.replace("{/__call__}", "</call>");
+    {
+        let captures: Vec<_> = crate::regex::CALL_TAG
+            .captures_iter(&reply.clone())
+            .map(|c| {
+                let (full_match, [inner]) = c.extract();
+                (full_match.to_string(), inner.to_string())
+            }).collect();
+
+        for (full_tag, inner_text) in captures {
+            // Parse the arguments.
+            let mut parts = inner_text.splitn(2, ' ');
+            let name = parts.next().unwrap_or("");
+            let value_str = parts.next().unwrap_or("");
+
+            // Parse the arguments with shell-style quoting supported.
+            // If there are unbalanced quotes, split by whitespace instead.
+            let args = shell_words::split(value_str)
+                .unwrap_or_else(|_| value_str.split_whitespace().map(str::to_string).collect());
+
+            // Find the object macro handler/subroutine to call.
+            let sub_result = {
+                let mut proxy = Proxy::new(&rs, username.to_string());
+
+                // A Rust function?
+                if let Some(sub) = rs.subroutines.get(name) {
+                    sub(&mut proxy, args).await
+                } else {
+                    Err(format!("[object {name} not found]"))
+                }
+            };
+
+            let replacement = match sub_result {
+                Ok(finisher) => {
+                    if !finisher.staged_user_vars.is_empty() {
+                        rs.sessions.set(username, finisher.staged_user_vars).await;
+                    }
+                    if !finisher.staged_bot_vars.is_empty() {
+                        for (k, v) in finisher.staged_bot_vars {
+                            rs.brain.set_bot_var(&k, &v);
+                        }
+                    }
+                    finisher.output
+                },
+                Err(e) => e,
+            };
+
+            reply = reply.replace(&full_tag, &replacement);
+        }
+    }
 
     reply.clone()
 }
