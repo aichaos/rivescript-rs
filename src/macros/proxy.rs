@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{RiveScript, macros::Subroutine};
+use crate::RiveScript;
 
 /// RiveScript Proxy for calling object macro subroutines.
 ///

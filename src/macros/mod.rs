@@ -1,18 +1,20 @@
 // Object macros and language handlers for RiveScript.
 
-use async_trait::async_trait;
 use futures::future::BoxFuture;
 
-use crate::RiveScript;
 use crate::macros::proxy::{Proxy, SubroutineResult};
 
 pub mod proxy;
 
-#[async_trait]
-pub trait Rust {
-    async fn call(name: &str, fields: Vec<String>) -> Result<String, String>;
-}
-
+/// Subroutine is a function pattern for defining a RiveScript object macro in Rust.
+///
+/// Example:
+///
+/// bot.set_subroutine("rust-set", |proxy, args| {
+///     async move {
+///         proxy.finish("Hello rust!".to_string())
+///     }.boxed()
+/// });
 pub type Subroutine = Box<
     dyn for<'a> Fn(&'a mut Proxy<'a>, Vec<String>) -> BoxFuture<'a, Result<SubroutineResult, String>>
     + Send
