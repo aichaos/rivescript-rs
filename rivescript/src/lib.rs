@@ -9,11 +9,12 @@ use crate::ast::AST;
 use crate::macros::proxy::{Proxy, SubroutineResult};
 use crate::parser::Parser;
 use log::{debug, warn};
+use rivescript_core::macros::LanguageLoader;
 use std::{collections::HashMap, error::Error, fs, sync::Arc};
 use futures::future::BoxFuture;
 use Result::Ok;
 
-mod ast;
+use rivescript_core::{DEFAULT_DEPTH, ast};
 mod errors;
 mod inheritance;
 mod macros;
@@ -29,17 +30,13 @@ mod utils;
 /// Rust library version.
 pub const VERSION: &str = "0.1.0";
 
-// Various internal constants.
-const DEFAULT_TOPIC: &str = "random";
-const BEGIN_TOPIC: &str = "__begin__";
-const ERR_NO_MATCH: &str = "[ERR: No Trigger Matched]";
-const ERR_NO_REPLY: &str = "[ERR: No Reply]";
-const BEGIN_REQUEST: &str = "request";
-const TAG_OK: &str = "{ok}";
-const UNDEFINED: &str = "undefined";
-const MAX_STARS: usize = 9;
-const MAX_HISTORY: usize = 9;
-const DEFAULT_DEPTH: usize = 50;
+/// Loader for the JavaScript object macro parser (optional builtin feature).
+#[cfg(feature = "javascript")]
+pub fn register_default_js_handler(rs: &mut RiveScript) {
+    use rivescript_js::JavaScriptLoader;
+    rs.set_handler("javascript", JavaScriptLoader::new());
+}
+
 
 /// RiveScript represents a single chatbot personality in memory.
 pub struct RiveScript {
@@ -55,6 +52,7 @@ pub struct RiveScript {
     sorted_thats: HashMap<String, Vec<ast::Trigger>>,
     sorted_subs: Vec<String>,
     sorted_person: Vec<String>,
+    macro_handlers: HashMap<String, Box<dyn LanguageLoader>>,
     subroutines: HashMap<String, macros::Subroutine>,
 
     // Runtime (in-reply) variables.
@@ -83,6 +81,7 @@ impl RiveScript {
             sorted_thats: HashMap::new(),
             sorted_subs: Vec::new(),
             sorted_person: Vec::new(),
+            macro_handlers: HashMap::new(),
             subroutines: HashMap::new(),
 
             in_reply_context: false,
@@ -219,6 +218,11 @@ impl RiveScript {
         F: for<'a> Fn(&'a mut Proxy<'a>, Vec<String>) -> BoxFuture<'a, Result<SubroutineResult, String>> + Send + Sync + 'static
     {
         self.subroutines.insert(name.to_string(), Box::new(f));
+    }
+
+    /// Set a handler for custom object macros written in other programming languages.
+    pub fn set_handler(&mut self, language: &str, loader: impl LanguageLoader + 'static) {
+        self.macro_handlers.insert(language.to_string(), Box::new(loader));
     }
 
     /// Get the current user's username.

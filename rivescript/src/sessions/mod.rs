@@ -57,8 +57,8 @@ pub struct History {
 impl Default for History {
     fn default() -> Self {
         Self {
-            input: vec!["undefined".to_string(); crate::MAX_HISTORY],
-            reply: vec!["undefined".to_string(); crate::MAX_HISTORY],
+            input: vec!["undefined".to_string(); rivescript_core::MAX_HISTORY],
+            reply: vec!["undefined".to_string(); rivescript_core::MAX_HISTORY],
         }
     }
 }

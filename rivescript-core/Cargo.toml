@@ -1,0 +1,10 @@
+[package]
+name = "rivescript-core"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "rivescript_core"
+path = "src/lib.rs"
+
+[dependencies]
