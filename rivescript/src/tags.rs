@@ -50,7 +50,7 @@ pub async fn process(
     reply = crate::regex::WEIGHT.replace_all(&reply, "").to_string();
     reply = reply.replace("<star>", "<star1>");
     reply = reply.replace("<botstar>", "<botstar1>");
-    for i in 1..crate::MAX_STARS {
+    for i in 1..rivescript_core::MAX_STARS {
         reply = reply.replace(
             &String::from(format!("<star{i}>")),
             stars.get(i).unwrap(),
@@ -65,9 +65,9 @@ pub async fn process(
     reply = reply.replace("<input>", "<input1>");
     reply = reply.replace("<reply>", "<reply1>");
     let history = rs.sessions.get_history(username).await;
-    for i in 1..crate::MAX_HISTORY+1 {
-        reply = reply.replace(&String::from(format!("<input{i}>")), &history.input.get(i-1).unwrap_or(&crate::UNDEFINED.to_string()));
-        reply = reply.replace(&String::from(format!("<reply{i}>")), &history.reply.get(i-1).unwrap_or(&crate::UNDEFINED.to_string()));
+    for i in 1..rivescript_core::MAX_HISTORY+1 {
+        reply = reply.replace(&String::from(format!("<input{i}>")), &history.input.get(i-1).unwrap_or(&rivescript_core::UNDEFINED.to_string()));
+        reply = reply.replace(&String::from(format!("<reply{i}>")), &history.reply.get(i-1).unwrap_or(&rivescript_core::UNDEFINED.to_string()));
     }
 
     // <id> and escape codes.
@@ -143,7 +143,7 @@ pub async fn process(
 
                 // Initialize a numeric value?
                 let mut orig_str = rs.sessions.get(username, &name).await;
-                if orig_str == crate::UNDEFINED {
+                if orig_str == rivescript_core::UNDEFINED {
                     orig_str = String::from("0");
                     rs.sessions.set(username, HashMap::from([
                         (name.to_string(), orig_str.to_string()),
@@ -301,13 +301,13 @@ fn pad_stars(stars: Vec<String>) -> Vec<String> {
     // Note: stars[0] is the full regex capture and stars[1..9] are <star1> thru <star9>.
     // In the end the stars.len() should be 10 to include values for all 9 stars.
 
-    for i in 0..crate::MAX_STARS+1 {
+    for i in 0..rivescript_core::MAX_STARS+1 {
         if cap < i+1 {
-            stars.push(crate::UNDEFINED.to_string());
+            stars.push(rivescript_core::UNDEFINED.to_string());
         }
     }
 
-    debug_assert_eq!(stars.len(), crate::MAX_STARS+1);
+    debug_assert_eq!(stars.len(), rivescript_core::MAX_STARS+1);
 
     stars
 }

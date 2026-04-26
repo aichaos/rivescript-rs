@@ -55,7 +55,7 @@ impl Parser {
         let mut concat_mode = ConcatMode::None;
 
         // Some temporary state variables as we parse this file.
-        let mut topic = String::from(crate::DEFAULT_TOPIC);
+        let mut topic = String::from(rivescript_core::DEFAULT_TOPIC);
         let mut current_trigger = Trigger::new("");
         let mut lineno: usize = 0;
         let mut in_comment = false;
@@ -337,7 +337,7 @@ impl Parser {
                     // BEGIN is a type of topic.
                     if kind == "begin" {
                         kind = String::from("topic");
-                        name = String::from(crate::BEGIN_TOPIC);
+                        name = String::from(rivescript_core::BEGIN_TOPIC);
                     }
 
                     // Handle the kinds of labels.

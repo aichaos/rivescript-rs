@@ -24,17 +24,17 @@ pub async fn reply(rs: &mut RiveScript, username: &str, message: &str) -> Result
     // If the BEGIN block exists, consult it first.
     if rs.brain.has_begin_block() {
         debug!("Has a BEGIN block");
-        match get_reply(rs, &rs.current_username, &String::from(crate::BEGIN_REQUEST), true, 0).await {
+        match get_reply(rs, &rs.current_username, &String::from(rivescript_core::BEGIN_REQUEST), true, 0).await {
             Ok(begin) => {
                 debug!("Answer to BEGIN request: {begin}");
 
                 // Is it OK to continue?
-                if begin.contains(crate::TAG_OK) {
+                if begin.contains(rivescript_core::TAG_OK) {
                     // Get the real reply and substitute it in.
                     match get_reply(rs, &rs.current_username, &msg, false, 0).await {
                         Ok(reply) => {
                             debug!("Answer to reply request: {reply}");
-                            answer = begin.replace(crate::TAG_OK, &reply);
+                            answer = begin.replace(rivescript_core::TAG_OK, &reply);
                         },
                         Err(e) => {
                             return Err(e);
@@ -60,7 +60,7 @@ pub async fn reply(rs: &mut RiveScript, username: &str, message: &str) -> Result
     }
 
     if answer.is_empty() {
-        answer = String::from(crate::ERR_NO_REPLY);
+        answer = String::from(rivescript_core::ERR_NO_REPLY);
     }
 
     // Save their message history.
@@ -96,7 +96,7 @@ pub async fn get_reply(
     // What topic are we in?
     let mut topic: String;
     if is_begin {
-        topic = String::from(crate::BEGIN_TOPIC);
+        topic = String::from(rivescript_core::BEGIN_TOPIC);
     } else {
         topic = rs.sessions.get(username, "topic").await;
     }
@@ -108,8 +108,8 @@ pub async fn get_reply(
 
     // Avoid letting them fall into a missing topic.
     if !rs.brain.has_topic(&topic) {
-        warn!("User {username} was in an empty topic named '{topic}' - rescuing them back to '{}'", crate::DEFAULT_TOPIC);
-        topic = String::from(crate::DEFAULT_TOPIC)
+        warn!("User {username} was in an empty topic named '{topic}' - rescuing them back to '{}'", rivescript_core::DEFAULT_TOPIC);
+        topic = String::from(rivescript_core::DEFAULT_TOPIC)
     }
 
     // Keep a pointer to the matched Trigger once we find it.
@@ -251,10 +251,10 @@ pub async fn get_reply(
 
                 // Defaults?
                 if left.len() == 0 {
-                    left = crate::UNDEFINED.to_string();
+                    left = rivescript_core::UNDEFINED.to_string();
                 }
                 if right.len() == 0 {
-                    right = crate::UNDEFINED.to_string();
+                    right = rivescript_core::UNDEFINED.to_string();
                 }
 
                 debug!("Check if [{left}] {} [{right}]", row.operator);
@@ -332,9 +332,9 @@ pub async fn get_reply(
 
     // Still no reply?? Give up with the fallback error replies.
     if !found_match {
-        return Ok(String::from(crate::ERR_NO_MATCH));
+        return Ok(String::from(rivescript_core::ERR_NO_MATCH));
     } else if reply.is_empty() {
-        return Ok(String::from(crate::ERR_NO_REPLY));
+        return Ok(String::from(rivescript_core::ERR_NO_REPLY));
     }
 
     // Process tags for the BEGIN block.

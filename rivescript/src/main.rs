@@ -66,6 +66,13 @@ Type a message to the bot and press Return to send it.",
 
     warn!("RiveScript-rs v{}", rivescript::VERSION);
 
+    // Register the JavaScript handler?
+    #[cfg(feature = "javascript")]
+    {
+        println!("Note: JavaScript object macros enabled.");
+        rivescript::register_default_js_handler(&mut bot);
+    }
+
     // An example object macro written in Rust.
     bot.set_subroutine("rust-set", |proxy, args| {
         async move {

@@ -22,12 +22,12 @@ struct UserData {
 
 impl UserData {
     pub fn new() -> Self {
-        let mut input = VecDeque::with_capacity(crate::MAX_HISTORY);
-        let mut reply = VecDeque::with_capacity(crate::MAX_HISTORY);
+        let mut input = VecDeque::with_capacity(rivescript_core::MAX_HISTORY);
+        let mut reply = VecDeque::with_capacity(rivescript_core::MAX_HISTORY);
 
-        for _ in 0..crate::MAX_HISTORY {
-            input.push_back(crate::UNDEFINED.to_string());
-            reply.push_back(crate::UNDEFINED.to_string());
+        for _ in 0..rivescript_core::MAX_HISTORY {
+            input.push_back(rivescript_core::UNDEFINED.to_string());
+            reply.push_back(rivescript_core::UNDEFINED.to_string());
         }
 
         Self {
@@ -83,7 +83,7 @@ impl SessionManager for MemorySession {
         store.get(username)
             .and_then(|user_data| user_data.vars.get(name))
             .cloned()
-            .unwrap_or_else(|| crate::UNDEFINED.to_string())
+            .unwrap_or_else(|| rivescript_core::UNDEFINED.to_string())
     }
 
     async fn get_any(&self, username: &str) -> HashMap<String, String> {

@@ -1,0 +1,44 @@
+[package]
+name = "rivescript"
+version = "0.1.0"
+edition = "2021"
+readme = "README.md"
+license = "MIT"
+description = "Implementation of a RiveScript chatbot interpreter for Rust."
+homepage = "https://www.rivescript.com"
+repository = "https://github.com/aichaos/rivescript-rs"
+keywords = ["chatbot", "rivescript"]
+categories = ["parser-implementations"]
+exclude = [
+    "eg/*",
+]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = []
+javascript = ["dep:rivescript-js"]
+
+[lib]
+name = "rivescript"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rivescript"
+path = "src/main.rs"
+
+[dependencies]
+rivescript-js = { path = "../rivescript-js", optional = true }
+"rivescript-core" = { path = "../rivescript-core" }
+log = "0.4.17"
+env_logger = "0.10.0"
+structopt = "0.3.26"
+lazy_static = "1.4.0"
+regex = "1.7.1"
+itertools = "0.10.5"
+tokio = { version = "1.52.1", features = ["full"] }
+rand = "0.10.1"
+async-trait = "0.1.89"
+async-recursion = "1.1.1"
+futures = "0.3.32"
+shell-words = "1.1.1"
