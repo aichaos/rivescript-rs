@@ -8,4 +8,5 @@ name = "rivescript_js"
 path = "src/lib.rs"
 
 [dependencies]
+boa_engine = "0.19.0"
 rivescript-core = { path = "../rivescript-core" }
