@@ -28,7 +28,7 @@ mod tests;
 mod utils;
 
 /// Rust library version.
-pub const VERSION: &str = "0.1.0";
+pub const VERSION: &str = "0.2.0";
 
 /// Loader for the JavaScript object macro parser (optional builtin feature).
 #[cfg(feature = "javascript")]
@@ -44,6 +44,7 @@ pub struct RiveScript {
     pub utf8: bool,
     pub depth: usize,
     pub case_sensitive: bool,
+    unicode_punctuation: ::regex::Regex,
 
     pub sessions: Arc<dyn sessions::SessionManager + Send + Sync>,
     parser: Parser,
@@ -73,6 +74,7 @@ impl RiveScript {
             utf8: false,
             depth: DEFAULT_DEPTH,
             case_sensitive: false,
+            unicode_punctuation: ::regex::Regex::new(r"[.,!?;:]").unwrap(),
 
             sessions: Arc::new(sessions::memory::MemorySession::new()),
             parser: Parser::new(),
@@ -87,6 +89,19 @@ impl RiveScript {
             in_reply_context: false,
             current_username: String::new(),
         }
+    }
+
+    /// Replace the Unicode punctuation regexp when running with UTF-8 mode enabled.
+    ///
+    /// In UTF-8 mode, the user's message is (for the most part) left untouched, with only
+    /// backslashes and HTML angle brackets stripped. This can cause matching errors though
+    /// if common punctuation symbols were left intact, for example, a trigger that looks for
+    /// `+ hello bot` might not match the string "Hello bot." because of the period at the end.
+    ///
+    /// The default regexp is `[.,!?;:]` which matches common English punctuation symbols to be
+    /// removed. In case you need to customize this, you can provide your own regexp here.
+    pub fn set_unicode_punctuation(&mut self, re: ::regex::Regex) {
+        self.unicode_punctuation = re;
     }
 
     /// Replace the default in-memory User Variable Session manager with an alternative.
@@ -252,6 +267,32 @@ impl RiveScript {
     /// Returns the string "undefined" if not set.
     pub async fn get_uservar(&self, username: &str, name: &str) -> String {
         self.sessions.get(username, name).await
+    }
+
+    /// Set many user variables for a given user.
+    ///
+    /// With this function, you could restore a full set of user variables (e.g. which
+    /// were previously retrieved from [get_uservars]) by providing a full HashMap of
+    /// key/value pairs.
+    pub async fn set_uservars(&self, username: &str, vars: HashMap<String, String>) {
+        self.sessions.set(username, vars).await
+    }
+
+    /// Get all stored user variables for a given user.
+    pub async fn get_uservars(&self, username: &str) -> HashMap<String, String> {
+        self.sessions.get_any(username).await
+    }
+
+    /// Get all stored user variables about all users.
+    ///
+    /// This function may be most useful when using the default in-memory user variable storage.
+    /// It returns a HashMap of usernames paired to the HashMap of all of their data.
+    ///
+    /// If you are using a third-party storage driver (such as to use Redis or SQL), you
+    /// will probably not want to call this function in case it scrapes your entire table
+    /// end-to-end and returns ALL data about ALL users.
+    pub async fn get_all_uservars(&self) -> HashMap<String, HashMap<String, String>> {
+        self.sessions.get_all().await
     }
 
     /// Debugging: print the loaded bot's brain (AST) to console.

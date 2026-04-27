@@ -40,7 +40,9 @@ async fn main() {
 
     // Debug logging mode.
     if opt.debug {
-        env::set_var("RUST_LOG", "debug");
+        unsafe {
+            env::set_var("RUST_LOG", "debug");
+        }
     }
 
     // let e.g. RUST_LOG=debug to set debug output.

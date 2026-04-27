@@ -2,11 +2,225 @@
 
 This is a port of the RiveScript interpreter for the Rust programming language.
 
-It is very much a **WORK IN PROGRESS** and is not functional yet. The checklist
-below may give you an idea of its state. Watch the git log and see me learn Rust
-while I figure this module out!
+RiveScript is a scripting language for authoring the classic "canned responses" type of chatbots, making it easy for bot authors to program triggers and responses to build a chatbot's personality. See [rivescript.com](https://www.rivescript.com) for details.
 
-The rough roadmap as I see it so far:
+> **Current Status: Beta**
+>
+> This port of RiveScript is "feature complete" and functional, implementing all of the commands and tags of RiveScript, but it has not been extensively field tested and is lacking a comprehensive unit test suite.
+>
+> The "stable 1.0.0" version of rivescript-rs will be released when:
+>
+> 1. The [RiveScript Test Suite (rsts)][rsts] has been implemented to verify that the Rust port is _at least_ as accurate as the other 5 official RiveScript ports are.
+> 2. A JavaScript engine for RiveScript Object Macros has been implemented, to verify that the interface for foreign language macro handlers is correctly done.
+> 3. A Redis driver for [User Variable Session Management](#user-variable-session-adapters) is implemented, to verify that the trait for that works as intended.
+
+# Usage
+
+This crate provides both a library and a stand-alone executable, the latter of which is an interactive command line shell for testing your RiveScript bot. Run the program with the path to a folder (or file) on disk that contains your RiveScript documents. Example:
+
+```bash
+$ rivescript ./eg/brain
+```
+
+See `rivescript --help` for options it accepts, including debug mode and UTF-8 mode.
+
+When used as a library for writing your own chatbot in Rust, the synopsis is as follows:
+
+```rust
+use rivescript::RiveScript;
+
+#[tokio::main]
+async fn main() {
+
+    // Create a RiveScript bot instance.
+    let mut bot = RiveScript::new();
+
+    // Enable UTF-8 mode to support non-English chatbots.
+    // See "UTF-8 Support" in the README for details.
+    bot.utf8 = true;
+
+    // Load a directory of RiveScript documents (.rive files)
+    bot.load_directory("./eg/brain").expect("Error loading files!");
+
+    // Load additional replies from a single .rive file.
+    bot.load_file("./replies.rive").expect("Error loading file!");
+
+    // Load RiveScript source from a string value instead of files.
+    bot.stream("
+        + hello bot
+        - Hello, human!
+    ").expect("Error parsing the streamed code!");
+
+    // After loading your RiveScript sources, be sure to sort the triggers!
+    // This populates internal sort structures to match a user's message with
+    // the most optimal triggers in your bot's brain.
+    bot.sort_triggers();
+
+    // Enter a main loop to chat with the bot in your terminal.
+    loop {
+
+        // Print the prompt.
+        print!("You> ");
+        io::stdout().flush().expect("oops");
+
+        // Read user input.
+        let mut message = String::new();
+        io::stdin()
+            .read_line(&mut message)
+            .expect("Failed to read line");
+
+        // Get the reply.
+        match bot.reply("local-user", &message).await {
+            Ok(reply) => println!("Bot> {reply}"),
+            Err(e) => println!("Error> {e}"),
+        };
+
+    }
+}
+```
+
+# Configuration
+
+After calling `RiveScript::new()` you may configure the object to customize its behavior by setting the following attributes:
+
+* `debug: bool` to enable debug mode. This will use log::debug and log::warn to print details about RiveScript's inner execution to your console. Note: the debug output is _very_ verbose!
+* `utf8: bool` can enable [UTF-8 mode](#utf-8-support).
+* `depth: usize` will set the recursion depth limit (default 50). This limit protects your bot from infinite recursion errors, in case two triggers redirect to each other.
+* `case_sensitive: bool` can make user messages case sensitive. The default is false, and user messages are made lowercase before matching against your triggers. If you set a true value, their message will not be made lowercase.
+
+The `rivescript` command-line program can set some of these options with flags like `--debug` and `--utf8`. See `rivescript --help` for full details.
+
+The recursion depth limit can also be overridden in your RiveScript brain using the `! global` command like so:
+
+```rivescript
+! global depth = 256
+```
+
+# Async API
+
+The main `rivescript.reply()` function is an async function, so you will need to use an async runtime such as `tokio` to use this library. The example above uses an `async fn main()` using tokio.
+
+Historically, most of the other implementations of RiveScript (written in Perl, Python, Java, and Go) were written in a synchronous (procedural) manner, where the reply() function was not async. This was OK for those languages because those languages were not generally async aware overall: common libraries for things like SQL databases and HTTP requests all had blocking (synchronous) API calls; so for example, an [Object Macro](#rust-object-macros) was able to interact with these APIs and get its answer synchronously and the main reply() function could be synchronous to match, and similarly, [User Variable Session Adapters](#user-variable-session-adapters) were able to get/set variables in a Redis cache or SQL database using the synchronous APIs common to those languages.
+
+This model led to some friction with its JavaScript port, because JavaScript is a heavily async language and all of the useful libraries (for web requests, SQL, etc.) were asynchronous, and RiveScript wasn't able to stop and await for these during the reply() phase. Eventually, when Async/Await support dropped in JavaScript, RiveScript.js was able to await these calls while still keeping its overall logic in line with the other ports.
+
+For the Rust port, async/await was built in from the beginning in case you want to call async crates from within a RiveScript reply.
+
+# UTF-8 Support
+
+RiveScript, historically, was not designed with UTF-8 in mind from the beginning. All ports of RiveScript provide a "UTF-8 mode," however, which is labeled as an 'experimental' feature of RiveScript (because its use may affect trigger matching behavior in subtle ways).
+
+By default (without UTF-8 mode enabled), RiveScript triggers are only allowed to contain basic ASCII characters (no foreign characters), and the user's input message will be stripped of all characters except for letters, numbers and spaces. Note: this stripping happens after substitutions are run, so you can `! sub what's = what is` to normalize and process their message first (and substitutions for those kind of contractions is recommended practice).
+
+When UTF-8 mode is enabled, these restrictions are lifted:
+
+* Triggers in RiveScript sources will only be limited to not contain certain metacharacters such as backslashes.
+* The user's message is only stripped of backslashes and HTML angled brackets (to protect from obvious XSS attacks if you use RiveScript in a web application).
+
+    Additionally, common punctuation characters will be stripped from the user's message, with the default set being `/[.,!?;:]/` which can be overridden by providing a new regexp of your own (RiveScript.set_unicode_punctuation()).
+
+The `<star>` tags in RiveScript would therefore be able to match the user's "raw" input strings (with non-ASCII characters preserved).
+
+# Rust Object Macros
+
+RiveScript has a feature called "object macros" that enable you to write custom program code to provide a dynamic response in your chatbot. For example, your bot can have a trigger for "what is the weather like in Los Angeles?" which could run custom code to fetch the answer from a weather API or similar.
+
+All RiveScript interpreters support object macros written in their native programming language, and the Rust port is no exception!
+
+Here is an example how to define a custom object macro subroutine in Rust:
+
+```rust
+#[tokio::main]
+async fn main() {
+    let mut bot = RiveScript::new();
+
+    // Define an object macro named "hello-rust"
+    bot.set_subroutine("hello-rust", |proxy, args| {
+        async move {
+            if args.len() >= 1 {
+                let value = args.join(" ");
+                return proxy.finish(format!("Hello, {value}!"));
+            }
+            proxy.finish("Hello, rust!".to_string())
+        }.boxed()
+    });
+
+    // Example RiveScript document to call this macro.
+    bot.stream("
+        + hello rust
+        - <call>hello-rust</call>
+
+        + hello *
+        - <call>hello-rust <star></call>
+    ").expect("Failed to parse");
+
+    bot.sort_triggers();
+
+    assert_eq!(bot.reply("username", "hello rust").await, "Hello, rust!");
+}
+```
+
+## RiveScript Proxy for Object Macro Subroutines
+
+If you are familiar with the other RiveScript ports, the Rust version has some unique nuances due to the borrow checker: usually, object macro subroutines would receive a pointer to the master RiveScript struct and a string array of parameters, but in Rust it wouldn't be possible to send a mutual borrow of RiveScript with the subroutine.
+
+Instead, a rivescript::macros::Proxy is passed in. The Proxy exposes a subset of useful RiveScript functions (such as get_uservar and set_uservar) which are most commonly useful for subroutines. This allows object macros to get and set user and bot variables. When getting variables, the master RiveScript struct can provide their values. When setting variables, the Proxy holds a local HashMap of 'staged' data which is committed after your subroutine returns. If you set and then get a variable within your subroutine, you will get back the 'staged' copy from the Proxy.
+
+Here is an example subroutine that gets and sets a user variable:
+
+```rust
+bot.set_subroutine("rust-set", |proxy, args| {
+    async move {
+        if args.len() >= 2 {
+            let username = proxy.current_username().unwrap_or(String::new());
+
+            let name = args.get(0).unwrap();
+            let value = args.get(1).unwrap();
+            let orig_value = proxy.get_uservar(&name).await;
+
+            proxy.set_uservar(name, value).await;
+            let staged_value = proxy.get_uservar(&name).await;
+
+            return proxy.finish(format!("For username {username}: The original variable '{name}' was '{orig_value}' and I have updated it to '{value}' (staged value: '{staged_value}')"));
+        }
+        proxy.finish("Usage: rust-set name value".to_string())
+    }.boxed()
+});
+```
+
+And its usage from RiveScript:
+
+```rivescript
++ rust set * *
+- <call>rust-set <star1> "<star2>"</call>
+```
+
+# User Variable Session Adapters
+
+By default, RiveScript stores user variables in memory using a HashMap keyed by the username passed in to the reply() function. You can import and export user variables with functions like get_uservars() and set_uservars().
+
+Like most of the other RiveScript implementations, this crate also provides support for pluggable User Variable Session Adapters so you may persist user variables proactively into something like a Redis cache or SQL database.
+
+Examples coming soon!
+
+# Testing It
+
+Git clone this project and run: `cargo run -- eg/brain`
+
+For help: `cargo run -- --help`
+
+# Building
+
+Install [Rust](https://www.rust-lang.org/) and build and test this project
+with commands like the following:
+
+* `cargo build`
+
+    Builds the rivescript(.exe) binary.
+
+# Features Supported
+
+This port of RiveScript is "feature complete" and implements all of the commands and tags of RiveScript. The checklist below was used during the development of this module which lays out all of the tasks that a RiveScript interpreter must fulfill.
 
 - [ ] Read and parse RiveScript source documents into memory.
     - [x] load_directory(), load_file() and stream() can access RiveScript sources.
@@ -75,21 +289,6 @@ The rough roadmap as I see it so far:
 - [ ] Followup niceties:
     - [ ] A JavaScript interpreter for built-in support for JS object macros.
     - [ ] Pluggable user variable session drivers (with e.g. Redis implementation).
-
-# Testing It
-
-Git clone this project and run: `cargo run -- eg/brain`
-
-For help: `cargo run -- --help`
-
-# Building
-
-Install [Rust](https://www.rust-lang.org/) and build and test this project
-with commands like the following:
-
-* `cargo build`
-
-    Builds the rivescript(.exe) binary.
 
 # Developer Notes
 
@@ -183,8 +382,28 @@ other programming languages RiveScript was written in:
 
 # License
 
-This module will be released under MIT when it becomes functional.
+```
+The MIT License (MIT)
 
-Copyright © 2022-2026 Noah Petherbridge.
+Copyright (c) 2022-2026 Noah Petherbridge
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 [rsts]: https://github.com/aichaos/rsts

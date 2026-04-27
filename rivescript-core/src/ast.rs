@@ -1,3 +1,11 @@
+//! # RiveScript Abstract Syntax Tree
+//!
+//! The AST is a parsed object representing all of the contents of a RiveScript
+//! bot brain. It is the output object that you get when you load_file() or
+//! stream() a RiveScript document (or several). It contains all of the useful
+//! inner contents of the RiveScript brain, including global bot variables,
+//! substitutions and other configuration that was defined via RiveScript.
+
 use std::{collections::HashMap, sync::RwLock};
 
 /// Root of the "abstract syntax tree" representing a RiveScript

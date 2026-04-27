@@ -1,7 +1,7 @@
 [package]
 name = "rivescript"
-version = "0.1.0"
-edition = "2021"
+version = "0.2.0"
+edition = "2024"
 readme = "README.md"
 license = "MIT"
 description = "Implementation of a RiveScript chatbot interpreter for Rust."

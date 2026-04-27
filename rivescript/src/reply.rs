@@ -17,7 +17,7 @@ pub async fn reply(rs: &mut RiveScript, username: &str, message: &str) -> Result
     let mut answer = String::new();
 
     // Format their message (run substitutions, etc.)
-    msg = format_message(rs, &msg);
+    msg = format_message(rs, &msg, false);
 
     debug!("Find a reply to: {msg}");
 
@@ -141,7 +141,7 @@ pub async fn get_reply(
                 let last_reply = history.reply.get(0).unwrap();
 
                 // Format the bot's last reply the same way as the human's.
-                let last_reply = format_message(rs, last_reply);
+                let last_reply = format_message(rs, last_reply, true);
                 debug!("Bot's last reply: {last_reply}");
 
                 // See if the bot's last reply matches.
@@ -196,7 +196,7 @@ pub async fn get_reply(
         for trig in triggers {
             let pattern = &trig.trigger;
             let regexp = trigger_regexp(rs, username, pattern).await;
-            debug!("Compare:{regexp}");
+            debug!("Compare '{message}' to: /{regexp}/");
 
             match regexp.captures(message) {
                 Some(caps) => {
@@ -349,7 +349,7 @@ pub async fn get_reply(
 }
 
 // Format the input message for safe processing.
-pub fn format_message(rs: &RiveScript, msg: &str) -> String {
+pub fn format_message(rs: &RiveScript, msg: &str, is_bot_reply: bool) -> String {
     let mut msg = String::from(msg);
 
     // Lowercase it.
@@ -362,13 +362,20 @@ pub fn format_message(rs: &RiveScript, msg: &str) -> String {
 
     // In UTF-8 mode, only strip metacharacters and HTML brackets.
     if rs.utf8 {
-        // TODO
+        msg = crate::regex::META_CHARACTERS.replace_all(&msg, "").to_string();
+        msg = rs.unicode_punctuation.replace_all(&msg, "").to_string();
+
+        // For the bot's last reply, strip all extra symbols.
+        if is_bot_reply {
+            msg = crate::regex::SYMBOLS.replace_all(&msg, "").to_string();
+        }
     } else {
         // For everything else, strip all non-alphanumerics.
         msg = strip_nasties(msg);
     }
 
-    msg
+    // Trim spaces and return.
+    msg.trim().to_string()
 }
 
 // Prepare a trigger pattern for the regular expression engine.
@@ -470,8 +477,8 @@ pub async fn trigger_regexp(rs: &RiveScript, username: &String, pattern: &String
             let reply = history.reply.get(idx-1).unwrap();
 
             // Format the previous inputs for the regexp engine.
-            let input = &format_message(rs, input);
-            let reply = &format_message(rs, reply);
+            let input = &format_message(rs, input, true);
+            let reply = &format_message(rs, reply, true);
 
             pattern = pattern.replace(
                 &String::from(format!("<input{idx}>")),

@@ -1,4 +1,7 @@
-// Object macros and language handlers for RiveScript.
+//! Object Macros
+//!
+//! This module defines types and traits useful for writing a RiveScript object
+//! macro subroutine in Rust.
 
 use futures::future::BoxFuture;
 

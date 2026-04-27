@@ -22,6 +22,8 @@ lazy_static! {
     pub static ref HISTORY_TAG: Regex = Regex::new(r"<(?:input|reply)(\d+?)>").unwrap();
     pub static ref CALL_TAG: Regex = Regex::new(r"<call>(.+?)</call>").unwrap();
     pub static ref NASTIES: Regex = Regex::new(r"[^A-Za-z0-9 ]").unwrap();
+    pub static ref META_CHARACTERS: Regex = Regex::new(r"[\\<>]+").unwrap();
+    pub static ref SYMBOLS: Regex = Regex::new(r"[.?,!;:@#$%^&*()]+").unwrap();
     pub static ref ZERO_WIDTH_STAR: Regex = Regex::new(r"^\*$").unwrap();
     pub static ref CONDITION: Regex = Regex::new(r"^(.+?)\s+(==|eq|!=|ne|<>|<|<=|>|>=)\s+(.*?)$").unwrap();
     pub static ref PLACEHOLDER: Regex = Regex::new(r"\x00(\d+)\x00").unwrap();
