@@ -2,6 +2,11 @@
 name = "rivescript-core"
 version = "0.2.0"
 edition = "2024"
+readme = "README.md"
+license = "MIT"
+description = "Core data types and traits for RiveScript."
+homepage = "https://www.rivescript.com"
+repository = "https://github.com/aichaos/rivescript-rs"
 
 [lib]
 name = "rivescript_core"

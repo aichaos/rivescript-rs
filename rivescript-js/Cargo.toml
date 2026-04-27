@@ -2,10 +2,14 @@
 name = "rivescript-js"
 version = "0.1.0"
 edition = "2024"
+readme = "README.md"
+license = "MIT"
+description = "A JavaScript engine for RiveScript object macros."
+repository = "https://github.com/aichaos/rivescript-rs"
 
 [lib]
 name = "rivescript_js"
 path = "src/lib.rs"
 
 [dependencies]
-rivescript-core = { path = "../rivescript-core" }
+rivescript-core = { version = "0.2.0", path = "../rivescript-core" }
