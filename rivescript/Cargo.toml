@@ -9,6 +9,7 @@ homepage = "https://www.rivescript.com"
 repository = "https://github.com/aichaos/rivescript-rs"
 keywords = ["chatbot", "rivescript"]
 categories = ["parser-implementations"]
+exclude = ["/tests"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -39,3 +40,8 @@ async-trait = "0.1.89"
 async-recursion = "1.1.1"
 futures = "0.3.32"
 shell-words = "1.1.1"
+
+[dev-dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+serde_yaml = "0.9.34"
+walkdir = "2.5.0"

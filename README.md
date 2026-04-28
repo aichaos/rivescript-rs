@@ -203,11 +203,20 @@ Like most of the other RiveScript implementations, this crate also provides supp
 
 Examples coming soon!
 
-# Testing It
+# Development
 
-Git clone this project and run: `cargo run -- eg/brain`
+Git clone this project recursively so that you pull in the [RiveScript Test Suite][rsts] submodule:
 
-For help: `cargo run -- --help`
+```bash
+git clone --recursive git@github.com:aichaos/rivescript-rs
+```
+
+To run the `rivescript` command line program for testing:
+
+```bash
+cd rivescript/
+cargo run -- ./eg/brain
+```
 
 # Building
 
@@ -217,6 +226,76 @@ with commands like the following:
 * `cargo build`
 
     Builds the rivescript(.exe) binary.
+
+# Testing
+
+Among the unit tests, the [RiveScript Test Suite (RSTS)][rsts] is used to do the bulk of the RiveScript language testing. RSTS is included as a git submodule, so be sure to either clone the rivescript-rs repo recursively or run `git submodule init && git submodule update` to download it after the fact.
+
+The `rivescript/build.rs` file will check whether the RSTS is available at build time, and log a note if it is not. Note: this only happens when you are building from the local git repo, it shouldn't log when you are simply using rivescript-rs from your own separate project.
+
+To debug the RSTS test results, run the tests like so:
+
+```bash
+cargo test rivescript -- --nocapture
+```
+
+The happy path should show all RSTS tests passing on your terminal:
+
+```
+Loading test: triggers.yml
+✓ triggers.yml#trigger_arrays
+✓ triggers.yml#weighted_triggers
+✓ triggers.yml#atomic
+✓ triggers.yml#alternatives_and_optionals
+✓ triggers.yml#wildcards
+
+Loading test: unicode.yml
+✓ unicode.yml#wildcards
+✓ unicode.yml#unicode
+
+Loading test: options.yml
+✓ options.yml#test_concat_space_with_conditionals
+✓ options.yml#test_concat_none_with_conditionals
+✓ options.yml#concat
+✓ options.yml#test_concat_newline_with_conditionals
+
+Loading test: math.yml
+✓ math.yml#addition
+
+Loading test: test-spec.yml
+✓ test-spec.yml#test_name
+
+Loading test: begin.yml
+✓ begin.yml#simple_begin_block
+✓ begin.yml#blocked_begin_block
+✓ begin.yml#no_begin_block
+✓ begin.yml#conditional_begin_block
+
+Loading test: substitutions.yml
+✓ substitutions.yml#person_substitutions
+✓ substitutions.yml#message_substitutions
+
+Loading test: bot-variables.yml
+✓ bot-variables.yml#global_variables
+✓ bot-variables.yml#bot_variables
+
+Loading test: replies.yml
+✓ replies.yml#continuations
+✓ replies.yml#previous
+✓ replies.yml#redirects
+✓ replies.yml#embedded_tags
+✓ replies.yml#random
+✓ replies.yml#set_uservars
+✓ replies.yml#conditions
+✓ replies.yml#questionmark
+✓ replies.yml#redirect_with_undefined_input
+✓ replies.yml#reply_arrays
+✓ replies.yml#redirect_with_undefined_vars
+
+test test_rivescript_suite ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+```
 
 # Features Supported
 
@@ -245,7 +324,7 @@ This port of RiveScript is "feature complete" and implements all of the commands
     - [x] Sorting %Previous
     - [x] Sorting substitution lists
     - [x] Topic inherits/includes.
-- [ ] Fetch a reply for the user
+- [x] Fetch a reply for the user
     - [x] User variable storage
     - [x] Substitutions (`! sub`)
     - [x] `> begin` blocks
@@ -285,7 +364,7 @@ This port of RiveScript is "feature complete" and implements all of the commands
         - [x] `\n`
         - [x] `\/`
         - [x] `\#`
-- [ ] Make it pass the [RiveScript Test Suite][rsts] to verify it is _at least_ as accurate as the other 5 implementations.
+- [x] Make it pass the [RiveScript Test Suite][rsts] to verify it is _at least_ as accurate as the other 5 implementations.
 - [ ] Followup niceties:
     - [ ] A JavaScript interpreter for built-in support for JS object macros.
     - [ ] Pluggable user variable session drivers (with e.g. Redis implementation).

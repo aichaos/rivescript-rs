@@ -115,7 +115,7 @@ impl RiveScript {
     /// # use rivescript::RiveScript;
     /// # fn main() {
     ///     let mut bot = RiveScript::new();
-    ///     bot.load_directory("./eg/brain").expect("Couldn't load directory!");
+    ///     bot.load_directory("../eg/brain").expect("Couldn't load directory!");
     /// # }
     /// ```
     pub fn load_directory(&mut self, path: &str) -> Result<bool, Box<dyn Error>> {
@@ -133,10 +133,6 @@ impl RiveScript {
                 Some(ext) => {
                     if ext.eq_ignore_ascii_case("rive") || ext.eq_ignore_ascii_case(".rs") {
                         self.load_file(filepath.as_path().display().to_string().as_str())?;
-                        // match self.load_file(filepath.as_path().display().to_string().as_str()) {
-                        //     Ok(_) => continue,
-                        //     Err(err) => return Err(err),
-                        // }
                     }
                 }
                 None => continue,
@@ -152,7 +148,7 @@ impl RiveScript {
     /// # use rivescript::RiveScript;
     /// # fn main() {
     ///     let mut bot = RiveScript::new();
-    ///     bot.load_file("./eg/brain/eliza.rive").expect("Couldn't load file from disk!");
+    ///     bot.load_file("../eg/brain/eliza.rive").expect("Couldn't load file from disk!");
     /// # }
     /// ```
     pub fn load_file(&mut self, path: &str) -> Result<bool, Box<dyn Error>> {

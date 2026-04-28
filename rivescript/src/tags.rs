@@ -38,6 +38,11 @@ pub async fn process(
         reply = reply.replacen(m, &result, 1);
     }
 
+    // Re-insert dummied out (non-existent) arrays from the above block.
+    reply = crate::regex::REPLY_ARRAY_DUMMIED
+        .replace_all(&reply, String::from("(@$1)"))
+        .to_string();
+
     // Tag shortcuts.
     reply = reply.replace("<person>", "{person}<star>{/person}");
     reply = reply.replace("<@>", "{@<star>}");
@@ -97,112 +102,119 @@ pub async fn process(
     // Move the <call> tags out of the way first.
     reply = reply.replace("<call>", "{__call__}");
     reply = reply.replace("</call>", "{/__call__}");
-    for (m, [tag_body]) in crate::regex::ANY_TAG.captures_iter(&reply.clone()).map(|c| c.extract()) {
-        let parts: Vec<String> = tag_body.splitn(2, " ").map(|s| s.to_string()).collect();
-        let tag = parts.get(0).unwrap();
-        let data = parts.get(1).map(|s| s.as_str()).unwrap_or("");
-        let mut insert = String::new();
+    loop {
+        match crate::regex::ANY_TAG.captures(&reply.clone()) {
+            Some(caps) => {
+                let tag_body = caps.get(1).unwrap().as_str();
 
-        // Handle the various types of tags.
-        match tag.as_str() {
-            "bot" | "env" => {
-                // <bot> and <env> work similarly.
-                if data.contains("=") {
-                    // Doing an assignment.
-                    let parts: Vec<String> = data.splitn(2, "=").map(|s| s.to_string()).collect();
-                    let name = parts.get(0).unwrap();
-                    let value = parts.get(1).map(|s| s.as_str()).unwrap_or("");
+                let parts: Vec<String> = tag_body.splitn(2, " ").map(|s| s.to_string()).collect();
+                let tag = parts.get(0).unwrap();
+                let data = parts.get(1).map(|s| s.as_str()).unwrap_or("");
+                let mut insert = String::new();
 
-                    if tag == "bot" {
-                        rs.brain.set_bot_var(name, value);
-                    } else {
-                        rs.brain.set_global(name, value);
-                    }
-                } else {
-                    if tag == "bot" {
-                        insert = rs.brain.get_bot_var(&data);
-                    } else {
-                        insert = rs.brain.get_global(&data);
-                    }
-                }
-            },
-            "set" => {
-                // <set> a user variable.
-                let parts: Vec<String> = data.splitn(2, "=").map(|s| s.to_string()).collect();
-                let name = parts.get(0).unwrap();
-                let value = parts.get(1).map(|s| s.as_str()).unwrap_or("");
-                rs.sessions.set(username, HashMap::from([
-                    (name.to_string(), value.to_string()),
-                ])).await;
-            },
-            "add" | "sub" | "mult" | "div" => {
-                // Math operator tags.
-                let parts: Vec<String> = data.splitn(2, "=").map(|s| s.to_string()).collect();
-                let name = parts.get(0).unwrap();
-                let value_str = parts.get(1).map(|s| s.as_str()).unwrap_or("");
+                // Handle the various types of tags.
+                match tag.as_str() {
+                    "bot" | "env" => {
+                        // <bot> and <env> work similarly.
+                        if data.contains("=") {
+                            // Doing an assignment.
+                            let parts: Vec<String> = data.splitn(2, "=").map(|s| s.to_string()).collect();
+                            let name = parts.get(0).unwrap();
+                            let value = parts.get(1).map(|s| s.as_str()).unwrap_or("");
 
-                // Initialize a numeric value?
-                let mut orig_str = rs.sessions.get(username, &name).await;
-                if orig_str == rivescript_core::UNDEFINED {
-                    orig_str = String::from("0");
-                    rs.sessions.set(username, HashMap::from([
-                        (name.to_string(), orig_str.to_string()),
-                    ])).await;
-                }
-
-                // Cast the original to a number.
-                if let Ok(mut orig_value) = orig_str.parse::<i64>() {
-                    // Cast the operand to a number.
-                    if let Ok(operand) = value_str.parse::<i64>() {
-
-                        // Do the needful.
-                        let mut math_ok = true;
-                        match tag.as_str() {
-                            "add" => {
-                                orig_value += operand;
-                            },
-                            "sub" => {
-                                orig_value -= operand;
-                            },
-                            "mult" => {
-                                orig_value *= operand;
-                            },
-                            "div" => {
-                                if operand == 0 {
-                                    insert = format!("[ERR: Can't Divide By Zero]");
-                                    math_ok = false;
-                                } else {
-                                    orig_value /= operand;
-                                }
+                            if tag == "bot" {
+                                rs.brain.set_bot_var(name, value);
+                            } else {
+                                rs.brain.set_global(name, value);
                             }
-                            _ => (),
+                        } else {
+                            if tag == "bot" {
+                                insert = rs.brain.get_bot_var(&data);
+                            } else {
+                                insert = rs.brain.get_global(&data);
+                            }
                         }
+                    },
+                    "set" => {
+                        // <set> a user variable.
+                        let parts: Vec<String> = data.splitn(2, "=").map(|s| s.to_string()).collect();
+                        let name = parts.get(0).unwrap();
+                        let value = parts.get(1).map(|s| s.as_str()).unwrap_or("");
+                        rs.sessions.set(username, HashMap::from([
+                            (name.to_string(), value.to_string()),
+                        ])).await;
+                    },
+                    "add" | "sub" | "mult" | "div" => {
+                        // Math operator tags.
+                        let parts: Vec<String> = data.splitn(2, "=").map(|s| s.to_string()).collect();
+                        let name = parts.get(0).unwrap();
+                        let value_str = parts.get(1).map(|s| s.as_str()).unwrap_or("");
 
-                        // Successful math? Save it back to their storage.
-                        if math_ok {
+                        // Initialize a numeric value?
+                        let mut orig_str = rs.sessions.get(username, &name).await;
+                        if orig_str == rivescript_core::UNDEFINED {
+                            orig_str = String::from("0");
                             rs.sessions.set(username, HashMap::from([
-                                (name.to_string(), format!("{orig_value}")),
+                                (name.to_string(), orig_str.to_string()),
                             ])).await;
                         }
 
-                    } else {
-                        insert = format!("[ERR: Math can't '{tag}' a non-numeric value '{value_str}' to the user variable '{name}']");
-                    }
-                } else {
-                    insert = format!("[ERR: The stored user variable '{name}' contains a non-numeric value '{orig_str}'; can not '{tag}' to it]");
-                }
-            },
-            "get" => {
-                // <get> a user variable.
-                insert = rs.sessions.get(username, &data).await;
-            }
-            _ => {
-                // Unrecognized tag; preserve it.
-                insert = format!("\x00{tag_body}\x01");
-            },
-        }
+                        // Cast the original to a number.
+                        if let Ok(mut orig_value) = orig_str.parse::<i64>() {
+                            // Cast the operand to a number.
+                            if let Ok(operand) = value_str.parse::<i64>() {
 
-        reply = reply.replacen(m, &insert, 1);
+                                // Do the needful.
+                                let mut math_ok = true;
+                                match tag.as_str() {
+                                    "add" => {
+                                        orig_value += operand;
+                                    },
+                                    "sub" => {
+                                        orig_value -= operand;
+                                    },
+                                    "mult" => {
+                                        orig_value *= operand;
+                                    },
+                                    "div" => {
+                                        if operand == 0 {
+                                            insert = format!("[ERR: Can't Divide By Zero]");
+                                            math_ok = false;
+                                        } else {
+                                            orig_value /= operand;
+                                        }
+                                    }
+                                    _ => (),
+                                }
+
+                                // Successful math? Save it back to their storage.
+                                if math_ok {
+                                    rs.sessions.set(username, HashMap::from([
+                                        (name.to_string(), format!("{orig_value}")),
+                                    ])).await;
+                                }
+
+                            } else {
+                                insert = format!("[ERR: Math can't '{tag}' a non-numeric value '{value_str}' to the user variable '{name}']");
+                            }
+                        } else {
+                            insert = format!("[ERR: The stored user variable '{name}' contains a non-numeric value '{orig_str}'; can not '{tag}' to it]");
+                        }
+                    },
+                    "get" => {
+                        // <get> a user variable.
+                        insert = rs.sessions.get(username, &data).await;
+                    }
+                    _ => {
+                        // Unrecognized tag; preserve it.
+                        insert = format!("\x00{tag_body}\x01");
+                    },
+                }
+
+                reply = reply.replacen(format!("<{tag_body}>").as_str(), &insert, 1);
+            },
+            None => break,
+        }
     }
 
     // Recover mangled HTML-like tags from the above loop.
@@ -225,6 +237,7 @@ pub async fn process(
     // Inline redirector.
     for (m, [pattern]) in crate::regex::REDIRECT_TAG.captures_iter(&reply.clone()).map(|c| c.extract()) {
         debug!("Inline redirection to: {pattern}");
+        let pattern = pattern.trim();
         match crate::reply::get_reply(&rs, &username, &pattern.to_string(), false, step+1).await {
             Ok(subreply) => {
                 reply = reply.replace(m, &subreply);
@@ -378,8 +391,6 @@ fn run_format_tag(rs: &crate::RiveScript, tag: &str, re: &regex::Regex, reply: &
     let mut message = reply.clone();
 
     for (m, [inner]) in re.captures_iter(&reply).map(|c| c.extract()) {
-        debug!("m: {m} inner: {inner}");
-
         // Person substitutions?
         if tag == "person" {
             let result = substitute(rs.brain.person.clone(), rs.sorted_person.clone(), &String::from(inner));

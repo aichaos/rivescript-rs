@@ -8,6 +8,7 @@ lazy_static! {
     pub static ref TRIGGER_OPTIONALS: Regex = Regex::new(r"\[(.+?)\]").unwrap();
     pub static ref TRIGGER_ARRAY: Regex = Regex::new(r"@(.+?)\b").unwrap();
     pub static ref REPLY_ARRAY: Regex = Regex::new(r"\(@([A-Za-z0-9_]+)\)").unwrap();
+    pub static ref REPLY_ARRAY_DUMMIED: Regex = Regex::new(r"\x00@([A-Za-z0-9_]+)\x00").unwrap();
     pub static ref RANDOM_TAG: Regex = Regex::new(r"\{random\}(.+?)\{/random\}").unwrap();
     pub static ref PERSON_TAG: Regex = Regex::new(r"\{person\}(.+?)\{/person\}").unwrap();
     pub static ref FORMAL_TAG: Regex = Regex::new(r"\{formal\}(.+?)\{/formal\}").unwrap();

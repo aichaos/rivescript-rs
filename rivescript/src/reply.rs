@@ -14,7 +14,7 @@ pub async fn reply(rs: &mut RiveScript, username: &str, message: &str) -> Result
     rs.current_username = String::from(username);
 
     let mut msg = String::from(message);
-    let mut answer = String::new();
+    let mut answer;
 
     // Format their message (run substitutions, etc.)
     msg = format_message(rs, &msg, false);
@@ -40,7 +40,12 @@ pub async fn reply(rs: &mut RiveScript, username: &str, message: &str) -> Result
                             return Err(e);
                         },
                     }
+                } else {
+                    answer = begin;
                 }
+
+                // Run post-reply tags.
+                answer = crate::tags::process(&rs, &rs.current_username, &msg, &answer, Vec::new(), Vec::new(), 0).await;
             },
             Err(e) => {
                 return Err(e);
@@ -142,7 +147,7 @@ pub async fn get_reply(
 
                 // Format the bot's last reply the same way as the human's.
                 let last_reply = format_message(rs, last_reply, true);
-                debug!("Bot's last reply: {last_reply}");
+                debug!("Bot's last reply: '{last_reply}' vs. '{}'", trig.previous);
 
                 // See if the bot's last reply matches.
                 let pattern = &trig.previous;
@@ -230,7 +235,7 @@ pub async fn get_reply(
             if !matched.redirect.is_empty() {
                 debug!("Redirecting us to: {}", matched.redirect);
                 let mut redirect = matched.redirect.clone();
-                // redirect = process_tags(username, ...)
+                redirect = crate::tags::process(&rs, &username, &message, &redirect, stars.clone(), bot_stars.clone(), 0).await;
                 redirect = redirect.to_lowercase();
 
                 debug!("Pretend user said: {redirect}");
@@ -291,6 +296,7 @@ pub async fn get_reply(
                 // Did the condition pass?
                 if passed {
                     reply = row.reply;
+                    break;
                 }
             }
 
@@ -497,7 +503,7 @@ pub async fn trigger_regexp(rs: &RiveScript, username: &String, pattern: &String
         pattern = pattern.replace(r"\u0040", "@");
     }
 
-    pattern = String::from(format!(r"^{}$", pattern));
+    pattern = String::from(format!(r"^{}$", pattern.trim()));
 
     Regex::new(&pattern).unwrap_or(Regex::new("").unwrap())
 }

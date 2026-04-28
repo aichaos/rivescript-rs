@@ -169,6 +169,7 @@ impl Parser {
                             line.push_str("<crlf>");
                             line.push_str(lookahead);
                         }
+                        continue;
                     }
 
                     // Concatenate ^Continue lines with the current concat mode characters.
@@ -215,7 +216,7 @@ impl Parser {
 
                     // Remove 'fake' line breaks unless this is an array.
                     if kind != "array" {
-                        value = value.replace("<crlf>", "");
+                        value = value.replace("<crlf>", concat_mode.to_string());
                     }
 
                     // Handle RiveScript specification version checks.
@@ -255,6 +256,7 @@ impl Parser {
                                     concat_mode = v;
                                 } else {
                                     warn!("Invalid value for '! local concat': '{value}'");
+                                    concat_mode = ConcatMode::None;
                                 }
                             }
                         }

@@ -1,0 +1,3 @@
+[submodule "tests/rsts"]
+	path = rivescript/tests/rsts
+	url = https://github.com/aichaos/rsts

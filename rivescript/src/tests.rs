@@ -40,7 +40,7 @@ mod tests {
         assert_eq!(ast.version, 2.0);
         assert_eq!(ast.get_global("depth"), "64");
         assert_eq!(ast.get_global("debug"), "true");
-        assert_eq!(ast.get_bot_var("name"), "RiveScriptTest Robot");
+        assert_eq!(ast.get_bot_var("name"), "RiveScript\nTest Robot");
 
         // Ensure the array parsed in correctly.
         let actual_array = ast.arrays.get("colors").unwrap();

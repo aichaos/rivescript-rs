@@ -54,7 +54,9 @@ fn _get_topic_triggers(brain: &ast::AST, topic: &ast::Topic, thats: bool, depth:
     let does_inherit = !topic.inherits.is_empty();
     for trigger in topic.triggers.clone() {
         if !thats {
-            in_this_topic.push(trigger);
+            if trigger.previous.is_empty() {
+                in_this_topic.push(trigger);
+            }
         } else if !trigger.previous.is_empty() {
             in_this_topic.push(trigger);
         }

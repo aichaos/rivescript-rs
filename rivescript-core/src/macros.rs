@@ -7,7 +7,7 @@
 //! For example, a RiveScript document might define an object macro written
 //! in JavaScript like so:
 //!
-//! ```
+//! ```rivescript
 //! > object reverse javascript
 //!     let str = args.join(" ");
 //!     return str.split('').reverse().join('');

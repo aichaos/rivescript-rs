@@ -11,10 +11,10 @@ impl JavaScriptLoader {
 }
 
 impl LanguageLoader for JavaScriptLoader {
-    fn load(&mut self, name: &str, code: Vec<String>) -> Result<bool, String> {
+    fn load(&mut self, _name: &str, _code: Vec<String>) -> Result<bool, String> {
         Ok(true)
     }
-    fn call(&self, name: &str, args: Vec<String>) -> Result<String, String> {
+    fn call(&self, _name: &str, _args: Vec<String>) -> Result<String, String> {
         Ok("".to_string())
     }
 }
