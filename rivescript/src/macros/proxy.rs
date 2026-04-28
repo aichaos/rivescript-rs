@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use async_trait::async_trait;
+use rivescript_core::macros;
 
 use crate::RiveScript;
 
@@ -19,12 +21,6 @@ pub struct Proxy<'a> {
     staged_bot_vars: HashMap<String, String>,
 }
 
-pub struct SubroutineResult {
-    pub output: String,
-    pub staged_user_vars: HashMap<String, String>,
-    pub staged_bot_vars: HashMap<String, String>,
-}
-
 impl<'a> Proxy<'a> {
 
     /// Create a new Proxy from the current RiveScript instance and username.
@@ -37,13 +33,17 @@ impl<'a> Proxy<'a> {
         }
     }
 
+}
+
+#[async_trait]
+impl<'a> macros::Proxy for Proxy<'a> {
     /// Returns the username of the current user who invokes the object macro.
-    pub fn current_username(&mut self) -> Result<String, String> {
+    fn current_username(&mut self) -> Result<String, String> {
         self.rs.current_username()
     }
 
     /// Set a user variable for the current user.
-    pub async fn set_uservar(&mut self, name: &str, value: &str) {
+    async fn set_uservar(&mut self, name: &str, value: &str) {
         self.staged_user_vars.insert(name.to_string(), value.to_string());
     }
 
@@ -52,7 +52,7 @@ impl<'a> Proxy<'a> {
     /// If you have recently `set_uservar()` within the same subroutine, this will
     /// return the cached value you had last set. Otherwise, it will look up the
     /// current value from the RiveScript user variable session store.
-    pub async fn get_uservar(&self, name: &str) -> String {
+    async fn get_uservar(&self, name: &str) -> String {
         if let Some(value) = self.staged_user_vars.get(name) {
             return value.clone();
         }
@@ -63,14 +63,14 @@ impl<'a> Proxy<'a> {
     ///
     /// Bot variables are 'global' to the RiveScript instance and shared between
     /// all users. This is equivalent to the `<bot name=value>` tag.
-    pub fn set_variable(&mut self, name: &str, value: &str) {
+    fn set_variable(&mut self, name: &str, value: &str) {
         self.staged_bot_vars.insert(name.to_string(), value.to_string());
     }
 
     /// Get a bot variable.
     ///
     /// This is equivalent to the `<bot name>` tag.
-    pub fn get_variable(&self, name: &str) -> String {
+    fn get_variable(&self, name: &str) -> String {
         if let Some(value) = self.staged_bot_vars.get(name) {
             return value.clone();
         }
@@ -86,8 +86,8 @@ impl<'a> Proxy<'a> {
     /// Internally, this function exports the staged bot/user variables back to
     /// the parent RiveScript struct so that any written variables can be
     /// committed back to their proper storage containers.
-    pub fn finish(&mut self, output: String) -> Result<SubroutineResult, String> {
-        Ok(SubroutineResult {
+    fn finish(&mut self, output: String) -> Result<macros::SubroutineResult, String> {
+        Ok(macros::SubroutineResult {
             output,
             staged_user_vars: std::mem::take(&mut self.staged_user_vars),
             staged_bot_vars: std::mem::take(&mut self.staged_bot_vars),

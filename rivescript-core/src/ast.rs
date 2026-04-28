@@ -172,8 +172,7 @@ impl Topic {
 /// of "hello bot" will match when the user says that phrase, and can
 /// pair a set of replies (multiple OK, which will be chosen at random)
 /// to be sent when that trigger is matched.
-#[derive(Debug)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Trigger {
     pub trigger: String,
     pub reply: Vec<String>,
@@ -213,7 +212,7 @@ pub struct Condition {
 /// source code as defined in the RiveScript document. It is up to the
 /// interpreter program to understand how to parse an object macro and make
 /// it executable.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Object {
     pub name: String,
     pub language: String,

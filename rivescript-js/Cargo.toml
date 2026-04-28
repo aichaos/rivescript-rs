@@ -12,4 +12,5 @@ name = "rivescript_js"
 path = "src/lib.rs"
 
 [dependencies]
+async-trait = "0.1.89"
 rivescript-core = { version = "0.3.0", path = "../rivescript-core" }

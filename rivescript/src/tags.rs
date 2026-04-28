@@ -276,7 +276,14 @@ pub async fn process(
                 if let Some(sub) = rs.subroutines.get(name) {
                     sub(&mut proxy, args).await
                 } else {
-                    Err(format!("[object {name} not found]"))
+                    // It's in a foreign programming language. Look up whether
+                    // we have mapped this object name to a registered handler.
+                    if let Some(lang) = rs.object_langs.get(name) {
+                        let handler = rs.macro_handlers.get(lang).unwrap();
+                        handler.call(&mut proxy, name, args).await
+                    } else {
+                        Err(format!("[object {name} not found]"))
+                    }
                 }
             };
 

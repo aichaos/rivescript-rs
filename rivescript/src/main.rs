@@ -2,6 +2,7 @@ use env_logger;
 use log::{debug, warn};
 use rivescript::RiveScript;
 use futures::FutureExt;
+use rivescript_core::macros::Proxy;
 use std::{env, fs, io, io::Write, path::PathBuf, process::exit};
 use structopt::StructOpt;
 

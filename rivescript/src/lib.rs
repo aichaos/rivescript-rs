@@ -6,9 +6,9 @@
 //! language author.
 
 use crate::ast::AST;
-use crate::macros::proxy::{Proxy, SubroutineResult};
+use crate::macros::proxy::Proxy;
 use log::{debug, warn};
-use rivescript_core::macros::LanguageLoader;
+use rivescript_core::macros::{LanguageLoader, SubroutineResult};
 use rivescript_core::{sessions, parser::Parser};
 use std::{collections::HashMap, error::Error, fs, sync::Arc};
 use futures::future::BoxFuture;
@@ -52,6 +52,7 @@ pub struct RiveScript {
     sorted_person: Vec<String>,
     macro_handlers: HashMap<String, Box<dyn LanguageLoader>>,
     subroutines: HashMap<String, macros::Subroutine>,
+    object_langs: HashMap<String, String>,
 
     // Runtime (in-reply) variables.
     in_reply_context: bool,
@@ -82,6 +83,7 @@ impl RiveScript {
             sorted_person: Vec::new(),
             macro_handlers: HashMap::new(),
             subroutines: HashMap::new(),
+            object_langs: HashMap::new(),
 
             in_reply_context: false,
             current_username: String::new(),
@@ -176,11 +178,30 @@ impl RiveScript {
     // Internal, centralized funnel to load a RiveScript document.
     fn _stream(&mut self, filename: &str, source: String) -> Result<bool, Box<dyn Error>> {
         let ast = self.parser.parse(filename, source)?;
+        let objects = ast.objects.clone();
         self.brain.extend(ast);
 
         // In case the parse changed the depth variable, update it.
         if let Ok(depth) = self.brain.get_global("depth").parse() {
             self.depth = depth;
+        }
+
+        // Load all the parsed object macros.
+        for (name, object) in objects {
+            if !self.macro_handlers.contains_key(&object.language) {
+                debug!("Note: object macro '{}' is written in an unhandled language '{}'; skipping", name, object.language);
+                continue;
+            }
+
+            debug!("Loading object macro {} ({})", name, object.language);
+            let handler: &mut Box<dyn LanguageLoader> = self.macro_handlers.get_mut(&object.language).unwrap();
+            match handler.load(&name, object.code) {
+                Ok(_) => {
+                    // Store the language handler for this macro's name.
+                    self.object_langs.insert(name, object.language);
+                },
+                Err(e) => warn!("Error parsing object macro '{}': {}", name, e),
+            };
         }
 
         Ok(true)
@@ -200,10 +221,10 @@ impl RiveScript {
         }
 
         // DEBUG
-        debug!("sorted_topics: {:#?}", self.sorted_topics);
-        debug!("sorted_thats: {:#?}", self.sorted_thats);
-        debug!("sorted_subs: {:#?}", self.sorted_subs);
-        debug!("sorted_person: {:#?}", self.sorted_person);
+        // debug!("sorted_topics: {:#?}", self.sorted_topics);
+        // debug!("sorted_thats: {:#?}", self.sorted_thats);
+        // debug!("sorted_subs: {:#?}", self.sorted_subs);
+        // debug!("sorted_person: {:#?}", self.sorted_person);
     }
 
     /// Get a reply from the chatbot.

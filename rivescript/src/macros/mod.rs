@@ -4,8 +4,9 @@
 //! macro subroutine in Rust.
 
 use futures::future::BoxFuture;
+use rivescript_core::macros::SubroutineResult;
 
-use crate::macros::proxy::{Proxy, SubroutineResult};
+use crate::macros::proxy::Proxy;
 
 pub mod proxy;
 
