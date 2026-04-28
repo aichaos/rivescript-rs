@@ -1,6 +1,6 @@
 [package]
 name = "rivescript-core"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 readme = "README.md"
 license = "MIT"
@@ -13,3 +13,7 @@ name = "rivescript_core"
 path = "src/lib.rs"
 
 [dependencies]
+async-trait = "0.1.89"
+lazy_static = "1.5.0"
+log = "0.4.29"
+regex = "1.12.3"

@@ -3,7 +3,7 @@
 use itertools::Itertools;
 use log::{debug, warn};
 
-use crate::{ast, inheritance, regex, errors::ParseError};
+use crate::{ast, inheritance, errors::ParseError};
 use std::{cmp::Reverse, collections::HashMap};
 
 // struct Trigger {
@@ -77,7 +77,7 @@ fn sort_trigger_set(triggers: Vec<ast::Trigger>) -> Vec<ast::Trigger> {
     // Map the incoming triggers into their priority buckets.
     for trigger in triggers {
         let mut weight: isize = 0;
-        match regex::WEIGHT.captures(trigger.trigger.as_str()) {
+        match rivescript_core::regex::WEIGHT.captures(trigger.trigger.as_str()) {
             Some(cap) => {
                 weight = cap.get(1).unwrap().as_str().parse::<isize>().unwrap_or(0);
             },
@@ -115,7 +115,7 @@ fn sort_trigger_set(triggers: Vec<ast::Trigger>) -> Vec<ast::Trigger> {
             debug!("Looking at trigger: {pattern}");
 
             // See if the trigger has an {inherits} tag.
-            match regex::INHERITS.captures(pattern.as_str()) {
+            match rivescript_core::regex::INHERITS.captures(pattern.as_str()) {
                 Some(cap) => {
                     inherits = cap.get(1).unwrap().as_str().parse::<isize>().unwrap_or(-1);
                     if inherits > highest_inherits {
@@ -124,7 +124,7 @@ fn sort_trigger_set(triggers: Vec<ast::Trigger>) -> Vec<ast::Trigger> {
                     debug!("Trigger belongs to a topic that inherits other topics. Level={inherits}");
 
                     // Remove the {inherits} tag from the raw pattern.
-                    pattern = regex::INHERITS.replace_all(&pattern, "").to_string();
+                    pattern = rivescript_core::regex::INHERITS.replace_all(&pattern, "").to_string();
                 },
                 None => (),
             }

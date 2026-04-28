@@ -1,6 +1,6 @@
 [package]
 name = "rivescript"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 readme = "../README.md"
 license = "MIT"
@@ -27,7 +27,7 @@ path = "src/main.rs"
 
 [dependencies]
 rivescript-js = { version = "0.1.0", path = "../rivescript-js", optional = true }
-"rivescript-core" = { version = "0.2.0", path = "../rivescript-core" }
+"rivescript-core" = { version = "0.3.0", path = "../rivescript-core" }
 log = "0.4.17"
 env_logger = "0.10.0"
 structopt = "0.3.26"

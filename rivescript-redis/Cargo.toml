@@ -1,0 +1,15 @@
+[package]
+name = "rivescript-redis"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-trait = "0.1.89"
+redis = { version = "1.2.0", features = ["tokio-comp", "json"] }
+rivescript-core = { version = "0.3.0", path = "../rivescript-core" }
+serde_json = "1.0.149"
+tokio = { version = "1.52.1", features = ["full"] }
+
+[dev-dependencies]
+rivescript = { version = "0.3.0", path = "../rivescript" }
+structopt = "0.3.26"

@@ -7,6 +7,9 @@
 
 pub mod ast;
 pub mod macros;
+pub mod parser;
+pub mod regex;
+pub mod sessions;
 
 pub const DEFAULT_TOPIC: &str = "random";
 pub const BEGIN_TOPIC: &str = "__begin__";

@@ -6,13 +6,13 @@ RiveScript is a scripting language for authoring the classic "canned responses" 
 
 > **Current Status: Beta**
 >
-> This port of RiveScript is "feature complete" and functional, implementing all of the commands and tags of RiveScript, but it has not been extensively field tested and is lacking a comprehensive unit test suite.
+> This port of RiveScript is "feature complete" and functional, implementing all of the commands and tags of RiveScript, and it passes the [RiveScript Test Suite (RSTS)][rsts].
 >
 > The "stable 1.0.0" version of rivescript-rs will be released when:
 >
-> 1. The [RiveScript Test Suite (rsts)][rsts] has been implemented to verify that the Rust port is _at least_ as accurate as the other 5 official RiveScript ports are.
-> 2. A JavaScript engine for RiveScript Object Macros has been implemented, to verify that the interface for foreign language macro handlers is correctly done.
-> 3. A Redis driver for [User Variable Session Management](#user-variable-session-adapters) is implemented, to verify that the trait for that works as intended.
+> * [x] 1. The [RiveScript Test Suite (RSTS)][rsts] has been implemented to verify that the Rust port is _at least_ as accurate as the other 5 official RiveScript ports are.
+> * [ ] 2. A JavaScript engine for RiveScript Object Macros has been implemented, to verify that the interface for foreign language macro handlers is correctly done.
+> * [x] 3. A Redis driver for [User Variable Session Management](#user-variable-session-adapters) is implemented, to verify that the trait for that works as intended.
 
 # Usage
 
@@ -78,6 +78,12 @@ async fn main() {
     }
 }
 ```
+
+# Examples
+
+See the [eg/ folder](https://github.com/aichaos/rivescript-rs/tree/main/eg) on GitHub for some examples how to do various things with RiveScript.
+
+A default example RiveScript brain (`.rive` files) can be found there, as well as examples how to use a Redis cache to proactively store user variables.
 
 # Configuration
 

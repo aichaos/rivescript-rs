@@ -1,16 +1,17 @@
 use std::collections::HashMap;
 
 use crate::ast::{Object, Trigger, AST};
-use crate::errors::ParseError;
 use log::{debug, warn};
 use Result::Ok;
 
 /// The version of the RiveScript spec we support.
+///
+/// This is compared against the `! version = 2.0` command which may be found in the
+/// RiveScript code being parsed. If the version command is present and greater than
+/// this number, the Parser will return an error.
 const RIVESCRIPT_SPEC_VERSION: f32 = 2.0;
 
-/// The default topic name.
-const DEFAULT_TOPIC: &str = "random";
-
+/// The RiveScript language parser.
 pub struct Parser {}
 
 enum ConcatMode {
@@ -39,11 +40,16 @@ impl ConcatMode {
 }
 
 impl Parser {
+    /// Create a new instance of the parser. It takes no parameters.
     pub fn new() -> Self {
         Self {}
     }
 
-    pub fn parse(&self, filename: &str, contents: String) -> Result<AST, ParseError> {
+    /// Parse RiveScript source code and return the Abstract Syntax Tree.
+    ///
+    /// The filename is used only for syntax error reporting (so the filename and line number
+    /// can be included in the error).
+    pub fn parse(&self, filename: &str, contents: String) -> Result<AST, String> {
         debug!("BEGIN PARSE ON FILENAME: {}", filename);
 
         // Start building an AST parsed from these files.
@@ -55,7 +61,7 @@ impl Parser {
         let mut concat_mode = ConcatMode::None;
 
         // Some temporary state variables as we parse this file.
-        let mut topic = String::from(rivescript_core::DEFAULT_TOPIC);
+        let mut topic = String::from(crate::DEFAULT_TOPIC);
         let mut current_trigger = Trigger::new("");
         let mut lineno: usize = 0;
         let mut in_comment = false;
@@ -224,11 +230,13 @@ impl Parser {
                         warn!("Found a version str: {}", value);
                         let version = value.parse::<f32>().unwrap_or(0.0);
                         if version == 0.0 {
-                            return Err(ParseError::new(
-                                "Didn't parse version string; was it a properly formatted number?",
-                            ));
+                            return Err(
+                                "Didn't parse version string; was it a properly formatted number?".to_string(),
+                            );
                         } else if version > RIVESCRIPT_SPEC_VERSION {
-                            return Err(ParseError::new("This RiveScript document declares a `! version` number higher than we support"));
+                            return Err(
+                                "This RiveScript document declares a `! version` number higher than we support".to_string(),
+                            );
                         } else {
                             ast.version = version;
                         }
@@ -339,7 +347,7 @@ impl Parser {
                     // BEGIN is a type of topic.
                     if kind == "begin" {
                         kind = String::from("topic");
-                        name = String::from(rivescript_core::BEGIN_TOPIC);
+                        name = String::from(crate::BEGIN_TOPIC);
                     }
 
                     // Handle the kinds of labels.
@@ -421,7 +429,7 @@ impl Parser {
                     }
 
                     if kind == "begin" || kind == "topic" {
-                        topic = DEFAULT_TOPIC.to_string();
+                        topic = crate::DEFAULT_TOPIC.to_string();
                     }
                 }
 

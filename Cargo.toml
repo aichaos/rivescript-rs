@@ -3,5 +3,6 @@ members = [
     "rivescript-core",
     "rivescript",
     "rivescript-js",
+    "rivescript-redis",
 ]
 resolver = "2"

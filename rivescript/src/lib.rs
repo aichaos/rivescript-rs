@@ -7,9 +7,9 @@
 
 use crate::ast::AST;
 use crate::macros::proxy::{Proxy, SubroutineResult};
-use crate::parser::Parser;
 use log::{debug, warn};
 use rivescript_core::macros::LanguageLoader;
+use rivescript_core::{sessions, parser::Parser};
 use std::{collections::HashMap, error::Error, fs, sync::Arc};
 use futures::future::BoxFuture;
 use Result::Ok;
@@ -18,17 +18,14 @@ use rivescript_core::{DEFAULT_DEPTH, ast};
 mod errors;
 mod inheritance;
 mod macros;
-mod parser;
-mod regex;
 mod reply;
-mod sessions;
 mod sorting;
 mod tags;
 mod tests;
 mod utils;
 
 /// Rust library version.
-pub const VERSION: &str = "0.2.0";
+pub const VERSION: &str = "0.3.0";
 
 /// Loader for the JavaScript object macro parser (optional builtin feature).
 #[cfg(feature = "javascript")]

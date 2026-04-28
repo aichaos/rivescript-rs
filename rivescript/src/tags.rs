@@ -25,7 +25,7 @@ pub async fn process(
     let bot_stars = pad_stars(bot_stars);
 
     // Turn (@arrays) into randomized sets.
-    for (m, [name]) in crate::regex::REPLY_ARRAY.captures_iter(&reply.clone()).map(|c| c.extract()) {
+    for (m, [name]) in rivescript_core::regex::REPLY_ARRAY.captures_iter(&reply.clone()).map(|c| c.extract()) {
         let result: String;
         if let Some(entries) = rs.brain.arrays.get(name) {
             // Substitute it in for a {random} tag.
@@ -39,7 +39,7 @@ pub async fn process(
     }
 
     // Re-insert dummied out (non-existent) arrays from the above block.
-    reply = crate::regex::REPLY_ARRAY_DUMMIED
+    reply = rivescript_core::regex::REPLY_ARRAY_DUMMIED
         .replace_all(&reply, String::from("(@$1)"))
         .to_string();
 
@@ -52,7 +52,7 @@ pub async fn process(
     reply = reply.replace("<lowercase>", "{lowercase}<star>{/lowercase}");
 
     // Weight and star tags.
-    reply = crate::regex::WEIGHT.replace_all(&reply, "").to_string();
+    reply = rivescript_core::regex::WEIGHT.replace_all(&reply, "").to_string();
     reply = reply.replace("<star>", "<star1>");
     reply = reply.replace("<botstar>", "<botstar1>");
     for i in 1..rivescript_core::MAX_STARS {
@@ -82,7 +82,7 @@ pub async fn process(
     reply = reply.replace(r"\#", "#");
 
     // {random}
-    for (m, [inner]) in crate::regex::RANDOM_TAG.captures_iter(&reply.clone()).map(|c| c.extract()) {
+    for (m, [inner]) in rivescript_core::regex::RANDOM_TAG.captures_iter(&reply.clone()).map(|c| c.extract()) {
         let random: Vec<String> = inner.split("|").map(|s| s.to_string()).collect();
         let mut rng = rand::rng();
         if let Some(selection) = &random[..].choose(&mut rng) {
@@ -91,11 +91,11 @@ pub async fn process(
     }
 
     // String formatting tags.
-    reply = run_format_tag(rs, "person", &crate::regex::PERSON_TAG, &reply);
-    reply = run_format_tag(rs, "formal", &crate::regex::FORMAL_TAG, &reply);
-    reply = run_format_tag(rs, "sentence", &crate::regex::SENTENCE_TAG, &reply);
-    reply = run_format_tag(rs, "uppercase", &crate::regex::UPPERCASE_TAG, &reply);
-    reply = run_format_tag(rs, "lowercase", &crate::regex::LOWERCASE_TAG, &reply);
+    reply = run_format_tag(rs, "person", &rivescript_core::regex::PERSON_TAG, &reply);
+    reply = run_format_tag(rs, "formal", &rivescript_core::regex::FORMAL_TAG, &reply);
+    reply = run_format_tag(rs, "sentence", &rivescript_core::regex::SENTENCE_TAG, &reply);
+    reply = run_format_tag(rs, "uppercase", &rivescript_core::regex::UPPERCASE_TAG, &reply);
+    reply = run_format_tag(rs, "lowercase", &rivescript_core::regex::LOWERCASE_TAG, &reply);
 
     // Handle all variable-related tags with an iterative regexp approach to
     // allow for nesting of tags in arbitrary ways (think <set a=<get b>>).
@@ -103,7 +103,7 @@ pub async fn process(
     reply = reply.replace("<call>", "{__call__}");
     reply = reply.replace("</call>", "{/__call__}");
     loop {
-        match crate::regex::ANY_TAG.captures(&reply.clone()) {
+        match rivescript_core::regex::ANY_TAG.captures(&reply.clone()) {
             Some(caps) => {
                 let tag_body = caps.get(1).unwrap().as_str();
 
@@ -222,7 +222,7 @@ pub async fn process(
     reply = reply.replace("\x01", ">");
 
     // Topic setter.
-    match crate::regex::TOPIC_TAG.captures(&reply) {
+    match rivescript_core::regex::TOPIC_TAG.captures(&reply) {
         Some(caps) => {
             let topic = caps.get(1).unwrap().as_str();
             debug!("Change user topic to: {topic}");
@@ -235,7 +235,7 @@ pub async fn process(
     }
 
     // Inline redirector.
-    for (m, [pattern]) in crate::regex::REDIRECT_TAG.captures_iter(&reply.clone()).map(|c| c.extract()) {
+    for (m, [pattern]) in rivescript_core::regex::REDIRECT_TAG.captures_iter(&reply.clone()).map(|c| c.extract()) {
         debug!("Inline redirection to: {pattern}");
         let pattern = pattern.trim();
         match crate::reply::get_reply(&rs, &username, &pattern.to_string(), false, step+1).await {
@@ -250,7 +250,7 @@ pub async fn process(
     reply = reply.replace("{__call__}", "<call>");
     reply = reply.replace("{/__call__}", "</call>");
     {
-        let captures: Vec<_> = crate::regex::CALL_TAG
+        let captures: Vec<_> = rivescript_core::regex::CALL_TAG
             .captures_iter(&reply.clone())
             .map(|c| {
                 let (full_match, [inner]) = c.extract();
@@ -373,7 +373,7 @@ pub fn substitute(map: HashMap<String, String>, sorted: Vec<String>, message: &S
     }
 
     // Convert the placeholders back in.
-    for (m, [id]) in crate::regex::PLACEHOLDER.captures_iter(&message.clone()).map(|c| c.extract()) {
+    for (m, [id]) in rivescript_core::regex::PLACEHOLDER.captures_iter(&message.clone()).map(|c| c.extract()) {
         let id: usize = id.parse().unwrap();
         if let Some(result) = ph.get(id) {
             message = message.replace(

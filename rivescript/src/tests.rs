@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::parser::Parser;
+    use rivescript_core::parser::Parser;
 
     #[test]
     fn it_works() {

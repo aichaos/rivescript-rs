@@ -309,7 +309,7 @@ pub async fn get_reply(
             // Process {weight} in the replies.
             let mut bucket: Vec<String> = Vec::new();
             for rep in matched.reply.clone() {
-                match crate::regex::WEIGHT.captures(&rep) {
+                match rivescript_core::regex::WEIGHT.captures(&rep) {
                     Some(caps) => {
                         let weight: usize = caps.get(1).unwrap().as_str().parse().unwrap();
                         for _ in 0..weight {
@@ -368,12 +368,12 @@ pub fn format_message(rs: &RiveScript, msg: &str, is_bot_reply: bool) -> String 
 
     // In UTF-8 mode, only strip metacharacters and HTML brackets.
     if rs.utf8 {
-        msg = crate::regex::META_CHARACTERS.replace_all(&msg, "").to_string();
+        msg = rivescript_core::regex::META_CHARACTERS.replace_all(&msg, "").to_string();
         msg = rs.unicode_punctuation.replace_all(&msg, "").to_string();
 
         // For the bot's last reply, strip all extra symbols.
         if is_bot_reply {
-            msg = crate::regex::SYMBOLS.replace_all(&msg, "").to_string();
+            msg = rivescript_core::regex::SYMBOLS.replace_all(&msg, "").to_string();
         }
     } else {
         // For everything else, strip all non-alphanumerics.
@@ -390,7 +390,7 @@ pub async fn trigger_regexp(rs: &RiveScript, username: &String, pattern: &String
 
     // If the trigger is simply '*' then the * needs to become (.*?)
     // instead of the usual (.+?), to match the blank string too.
-    pattern = crate::regex::ZERO_WIDTH_STAR.replace_all(&pattern, "<zerowidthstar>").to_string();
+    pattern = rivescript_core::regex::ZERO_WIDTH_STAR.replace_all(&pattern, "<zerowidthstar>").to_string();
 
     // Simple replacements.
     pattern = pattern.replace("*", r"(.+?)");  // *
@@ -398,8 +398,8 @@ pub async fn trigger_regexp(rs: &RiveScript, username: &String, pattern: &String
     pattern = pattern.replace("_", r"(\w+?)"); // _
 
     // Remove {weight} and {inherits}
-    pattern = crate::regex::WEIGHT.replace_all(&pattern, "").to_string();
-    pattern = crate::regex::INHERITS.replace_all(&pattern, "").to_string();
+    pattern = rivescript_core::regex::WEIGHT.replace_all(&pattern, "").to_string();
+    pattern = rivescript_core::regex::INHERITS.replace_all(&pattern, "").to_string();
 
     // Recover the zero-width star.
     pattern = pattern.replace("<zerowidthstar>", r"(.*?)");
@@ -412,7 +412,7 @@ pub async fn trigger_regexp(rs: &RiveScript, username: &String, pattern: &String
     }
 
     // Optionals.
-    for (_, [inner]) in crate::regex::TRIGGER_OPTIONALS.captures_iter(&pattern.clone()).map(|c| c.extract()) {
+    for (_, [inner]) in rivescript_core::regex::TRIGGER_OPTIONALS.captures_iter(&pattern.clone()).map(|c| c.extract()) {
         let parts: Vec<String> = inner.split("|").map(|s| s.to_string()).collect();
         let mut options: Vec<String> = Vec::new();
 
@@ -445,7 +445,7 @@ pub async fn trigger_regexp(rs: &RiveScript, username: &String, pattern: &String
     pattern = pattern.replace(r"\w", r"[^\s\d]");
 
     // Filter in arrays.
-    for (m, [name]) in crate::regex::TRIGGER_ARRAY.captures_iter(&pattern.clone()).map(|c| c.extract()) {
+    for (m, [name]) in rivescript_core::regex::TRIGGER_ARRAY.captures_iter(&pattern.clone()).map(|c| c.extract()) {
         let mut replacement = String::new();
         if let Some(items) = rs.brain.arrays.get(name) {
             replacement = format!(r"(?:{})", items.join("|"));
@@ -454,14 +454,14 @@ pub async fn trigger_regexp(rs: &RiveScript, username: &String, pattern: &String
     }
 
     // Filter in bot variables.
-    for (m, [name]) in crate::regex::BOT_TAG.captures_iter(&pattern.clone()).map(|c| c.extract()) {
+    for (m, [name]) in rivescript_core::regex::BOT_TAG.captures_iter(&pattern.clone()).map(|c| c.extract()) {
         let mut replacement = rs.brain.get_bot_var(name);
         replacement = strip_nasties(replacement).to_lowercase();
         pattern = pattern.replace(m, &replacement);
     }
 
     // Filter in <get> user variables.
-    for (m, [name]) in crate::regex::USER_VAR_TAG.captures_iter(&pattern.clone()).map(|c| c.extract()) {
+    for (m, [name]) in rivescript_core::regex::USER_VAR_TAG.captures_iter(&pattern.clone()).map(|c| c.extract()) {
         let mut replacement = rs.sessions.get(username, name).await;
         replacement = strip_nasties(replacement).to_lowercase();
         pattern = pattern.replace(m, &replacement);
@@ -473,7 +473,7 @@ pub async fn trigger_regexp(rs: &RiveScript, username: &String, pattern: &String
         pattern = pattern.replace("<reply>", "<reply1>");
         let history = rs.sessions.get_history(username).await;
 
-        for (_, [number]) in crate::regex::HISTORY_TAG.captures_iter(&pattern.clone()).map(|c| c.extract()) {
+        for (_, [number]) in rivescript_core::regex::HISTORY_TAG.captures_iter(&pattern.clone()).map(|c| c.extract()) {
             let mut idx: usize = 1;
             if !number.is_empty() {
                 idx = number.parse().unwrap();
@@ -510,6 +510,6 @@ pub async fn trigger_regexp(rs: &RiveScript, username: &String, pattern: &String
 
 pub fn strip_nasties(msg: String) -> String {
     let mut msg = msg.clone();
-    msg = crate::regex::NASTIES.replace_all(&msg, "").to_string();
+    msg = rivescript_core::regex::NASTIES.replace_all(&msg, "").to_string();
     msg
 }
