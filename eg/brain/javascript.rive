@@ -4,7 +4,8 @@
 
 // <call>hello-js</call>
 > object hello-js javascript
-	return "Hello, JavaScript!";
+	const username = rs.currentUser();
+	return `Hello, ${username}!`;
 < object
 
 // <call>setvar $username $key $value</call>
@@ -17,6 +18,14 @@
 	var name  = args.shift();
 	var value = args.join(" ");
 	rs.setUservar(uid, name, value);
+< object
+
+// <call>set-botvar $key $value</call>
+// Set a bot variable.
+> object set-botvar javascript
+	let name = args.shift();
+	let value = args.join(" ");
+	rs.setVariable(name, value);
 < object
 
 // <call>add $a $b</call>
@@ -69,6 +78,9 @@
 
 + javascript set * to *
 - Set user variable <star1> to <star2>.<call>setvar <star1> <star2></call>
+
++ javascript set botvar * to *
+- Set bot variable <star1> to <star2>.<call>set-botvar <star1> <star2></call>
 
 + wait # seconds
 - <call>await-me <star> "You waited <star> seconds for this response!"</call>

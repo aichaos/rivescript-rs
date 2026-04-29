@@ -80,14 +80,14 @@ Type a message to the bot and press Return to send it.",
     bot.set_subroutine("rust-set", |proxy, args| {
         async move {
             if args.len() >= 2 {
-                let username = proxy.current_username().unwrap_or(String::new());
+                let username = proxy.current_username();
 
                 let name = args.get(0).unwrap();
                 let value = args.get(1).unwrap();
-                let orig_value = proxy.get_uservar(&name).await;
+                let orig_value = proxy.get_uservar(&username, &name).await;
 
-                proxy.set_uservar(name, value).await;
-                let staged_value = proxy.get_uservar(&name).await;
+                proxy.set_uservar(&username, name, value).await.expect("Couldn't set user variable!");
+                let staged_value = proxy.get_uservar(&username, &name).await;
 
                 return proxy.finish(format!("For username {username}: The original variable '{name}' was '{orig_value}' and I have updated it to '{value}' (staged value: '{staged_value}')"));
             }

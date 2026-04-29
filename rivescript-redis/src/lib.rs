@@ -42,7 +42,7 @@ impl RedisSessionManager {
         self.client.get_multiplexed_async_connection().await.unwrap()
     }
 
-    /// Allow access to dangerous functions like [get_all] and [clear_all].
+    /// Allow access to dangerous functions like `get_all` and `clear_all`.
     ///
     /// These functions can tank your Redis server performance because they incur O(N) operations
     /// which can be very slow on large datasets. It is not recommended to use these functions.

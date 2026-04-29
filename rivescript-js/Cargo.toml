@@ -1,6 +1,6 @@
 [package]
 name = "rivescript-js"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 readme = "README.md"
 license = "MIT"
@@ -14,5 +14,6 @@ path = "src/lib.rs"
 [dependencies]
 async-trait = "0.1.89"
 boa_engine = "0.21.1"
+boa_gc = "0.21.1"
 rivescript-core = { version = "0.3.0", path = "../rivescript-core" }
 tokio = "1.52.1"

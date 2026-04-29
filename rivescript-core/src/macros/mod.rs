@@ -26,12 +26,13 @@ use async_trait::async_trait;
 /// subroutine has returned.
 ///
 /// For object macro subroutines written in Rust, the concrete implementation
-/// of this trait can be found in [rivescript::macros::proxy].
+/// of this trait can be found in rivescript::macros::proxy::Proxy.
 #[async_trait]
 pub trait Proxy: Send + Sync {
-    fn current_username(&mut self) -> Result<String, String>;
-    async fn set_uservar(&mut self, name: &str, value: &str);
-    async fn get_uservar(&self, name: &str) -> String;
+    fn current_username(&self) -> String;
+    async fn set_uservar(&mut self, username: &str, name: &str, value: &str) -> Result<bool, String>;
+    async fn get_uservar(&self, username: &str, name: &str) -> String;
+    async fn get_uservars(&self, username: &str) -> HashMap<String, String>;
     fn set_variable(&mut self, name: &str, value: &str);
     fn get_variable(&self, name: &str) -> String;
     fn finish(&mut self, output: String) -> Result<SubroutineResult, String>;
@@ -42,6 +43,7 @@ pub trait Proxy: Send + Sync {
 ///
 /// Its job is to carry the text output of the object macro, along with any
 /// 'staged' user or bot variables that the macro wanted to update.
+#[derive(Debug)]
 pub struct SubroutineResult {
     pub output: String,
     pub staged_user_vars: HashMap<String, String>,

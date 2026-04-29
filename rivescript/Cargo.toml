@@ -26,7 +26,7 @@ name = "rivescript"
 path = "src/main.rs"
 
 [dependencies]
-rivescript-js = { version = "0.1.0", path = "../rivescript-js", optional = true }
+rivescript-js = { version = "0.2.0", path = "../rivescript-js", optional = true }
 "rivescript-core" = { version = "0.3.0", path = "../rivescript-core" }
 log = "0.4.17"
 env_logger = "0.10.0"

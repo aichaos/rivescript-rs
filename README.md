@@ -4,16 +4,6 @@ This is a port of the RiveScript interpreter for the Rust programming language.
 
 RiveScript is a scripting language for authoring the classic "canned responses" type of chatbots, making it easy for bot authors to program triggers and responses to build a chatbot's personality. See [rivescript.com](https://www.rivescript.com) for details.
 
-> **Current Status: Beta**
->
-> This port of RiveScript is "feature complete" and functional, implementing all of the commands and tags of RiveScript, and it passes the [RiveScript Test Suite (RSTS)][rsts].
->
-> The "stable 1.0.0" version of rivescript-rs will be released when:
->
-> * [x] 1. The [RiveScript Test Suite (RSTS)][rsts] has been implemented to verify that the Rust port is _at least_ as accurate as the other 5 official RiveScript ports are.
-> * [ ] 2. A JavaScript engine for RiveScript Object Macros has been implemented, to verify that the interface for foreign language macro handlers is correctly done.
-> * [x] 3. A Redis driver for [User Variable Session Management](#user-variable-session-adapters) is implemented, to verify that the trait for that works as intended.
-
 # Usage
 
 This crate provides both a library and a stand-alone executable, the latter of which is an interactive command line shell for testing your RiveScript bot. Run the program with the path to a folder (or file) on disk that contains your RiveScript documents. Example:
@@ -84,6 +74,62 @@ async fn main() {
 See the [eg/ folder](https://github.com/aichaos/rivescript-rs/tree/main/eg) on GitHub for some examples how to do various things with RiveScript.
 
 A default example RiveScript brain (`.rive` files) can be found there, as well as examples how to use a Redis cache to proactively store user variables.
+
+# Crates and Features
+
+The rivescript-rs project publishes several useful crates:
+
+* **[rivescript](rivescript/)** is the primary crate. It implements both the library and the stand-alone command-like program.
+* **[rivescript-js](rivescript-js/)** enables RiveScript [Object Macros](#rust-object-macros) to be written in JavaScript.
+* **[rivescript-redis](rivescript-redis/)** can store your [User Variables](#user-variable-session-adapters) in a Redis cache rather than in-memory HashMaps.
+* **[rivescript-core](rivescript-core/)** contains common base types, traits, constants and so on for RiveScript. The AST (Abstract Syntax Tree) and Parser modules live there as well.
+
+## JavaScript Feature
+
+The primary **rivescript** crate has a `javascript` feature that applies to the command-line program.
+
+To install `rivescript` with JavaScript support enabled:
+
+```bash
+cargo install rivescript --features javascript
+```
+
+To run it from the git project:
+
+```bash
+cargo run --features javascript -- ./eg/brain
+```
+
+The rivescript program should print a notice that JavaScript object macros are enabled just before the prompt:
+
+```
+      .   .
+     .:...::      RiveScript Interpreter (Rust)
+    .::   ::.     Library Version: v0.3.0 (build n/a)
+ ..:;;. ' .;;:..
+    .  '''  .     Type '/quit' to quit.
+     :;,:,;:      Type '/help' for more options.
+     :     :
+Using the RiveScript bot found in: ["eg/brain"]
+Type a message to the bot and press Return to send it.
+Note: JavaScript object macros enabled.
+You>
+```
+
+# Stability
+
+**Current Status: Beta**
+
+This port of RiveScript is "feature complete" and functional, implementing all of the commands and tags of RiveScript, and it passes the [RiveScript Test Suite (RSTS)][rsts].
+
+The "stable 1.0.0" version of rivescript-rs will be released when:
+
+* [x] 1. The [RiveScript Test Suite (RSTS)][rsts] has been implemented to verify that the Rust port is _at least_ as accurate as the other 5 official RiveScript ports are.
+* [x] 2. A [JavaScript engine](rivescript-js/) for RiveScript Object Macros has been implemented, to verify that the interface for foreign language macro handlers is correctly done.
+* [x] 3. A Redis driver for [User Variable Session Management](#user-variable-session-adapters) is implemented, to verify that the trait for that works as intended.
+* [ ] 4. I am happy with the documentation, API, etc.
+
+If breaking changes need to happen before then, the second version number will increment (e.g. 0.3.x -> 0.4.0).
 
 # Configuration
 

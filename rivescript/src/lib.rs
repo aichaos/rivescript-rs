@@ -286,7 +286,7 @@ impl RiveScript {
     /// Set many user variables for a given user.
     ///
     /// With this function, you could restore a full set of user variables (e.g. which
-    /// were previously retrieved from [get_uservars]) by providing a full HashMap of
+    /// were previously retrieved from `get_uservars`) by providing a full HashMap of
     /// key/value pairs.
     pub async fn set_uservars(&self, username: &str, vars: HashMap<String, String>) {
         self.sessions.set(username, vars).await

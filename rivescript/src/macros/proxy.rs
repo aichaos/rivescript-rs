@@ -38,13 +38,24 @@ impl<'a> Proxy<'a> {
 #[async_trait]
 impl<'a> macros::Proxy for Proxy<'a> {
     /// Returns the username of the current user who invokes the object macro.
-    fn current_username(&mut self) -> Result<String, String> {
-        self.rs.current_username()
+    fn current_username(&self) -> String {
+        self.username.clone()
     }
 
     /// Set a user variable for the current user.
-    async fn set_uservar(&mut self, name: &str, value: &str) {
+    ///
+    /// Note: only the current username can have variables set for them. If you pass a
+    /// different username, it will return an error. This is due to the way that the Proxy
+    /// holds onto 'staged' set_uservars (to commit them after your subroutine returns).
+    ///
+    /// You may `get_uservar()` for other users normally (as the get will come directly from
+    /// RiveScript's user variable session store), but sets are staged only for the current user.
+    async fn set_uservar(&mut self, username: &str, name: &str, value: &str) -> Result<bool, String> {
+        if username != self.username {
+            return Err("New user variables can only be set for the current_username()".to_string());
+        }
         self.staged_user_vars.insert(name.to_string(), value.to_string());
+        Ok(true)
     }
 
     /// Get a user variable for the current user.
@@ -52,11 +63,16 @@ impl<'a> macros::Proxy for Proxy<'a> {
     /// If you have recently `set_uservar()` within the same subroutine, this will
     /// return the cached value you had last set. Otherwise, it will look up the
     /// current value from the RiveScript user variable session store.
-    async fn get_uservar(&self, name: &str) -> String {
+    async fn get_uservar(&self, username: &str, name: &str) -> String {
         if let Some(value) = self.staged_user_vars.get(name) {
             return value.clone();
         }
-        self.rs.sessions.get(&self.username, name).await
+        self.rs.sessions.get(&username, name).await
+    }
+
+    /// Get all stored variables about the user.
+    async fn get_uservars(&self, _username: &str) -> HashMap<String, String> {
+        self.rs.sessions.get_any(&self.rs.current_username().unwrap()).await
     }
 
     /// Set a bot variable.
