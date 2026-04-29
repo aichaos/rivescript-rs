@@ -2,6 +2,11 @@
 
 ! version = 2.0
 
+// <call>hello-js</call>
+> object hello-js javascript
+	return "Hello, JavaScript!";
+< object
+
 // <call>setvar $username $key $value</call>
 // Set a user variable for $username.
 // Equivalent to <set $key=$value> but for a specific username.
@@ -55,6 +60,9 @@
 		}
 	});
 < object
+
++ hello js
+- <call>hello-js</call>
 
 + add # and #
 - <star1> + <star2> = <call>add <star1> <star2></call>
