@@ -127,7 +127,7 @@ The "stable 1.0.0" version of rivescript-rs will be released when:
 * [x] 1. The [RiveScript Test Suite (RSTS)][rsts] has been implemented to verify that the Rust port is _at least_ as accurate as the other 5 official RiveScript ports are.
 * [x] 2. A [JavaScript engine](rivescript-js/) for RiveScript Object Macros has been implemented, to verify that the interface for foreign language macro handlers is correctly done.
 * [x] 3. A Redis driver for [User Variable Session Management](#user-variable-session-adapters) is implemented, to verify that the trait for that works as intended.
-* [ ] 4. I am happy with the documentation, API, etc.
+* [ ] 4. I am happy with the documentation, [its API](#rivescript-features-supported), etc.
 
 If breaking changes need to happen before then, the second version number will increment (e.g. 0.3.x -> 0.4.0).
 
@@ -253,7 +253,7 @@ By default, RiveScript stores user variables in memory using a HashMap keyed by 
 
 Like most of the other RiveScript implementations, this crate also provides support for pluggable User Variable Session Adapters so you may persist user variables proactively into something like a Redis cache or SQL database.
 
-Examples coming soon!
+See **[rivescript-redis](rivescript-redis/)** for an example implementation that uses a Redis cache.
 
 # Development
 
@@ -349,7 +349,7 @@ test test_rivescript_suite ... ok
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
 ```
 
-# Features Supported
+# RiveScript Features Supported
 
 This port of RiveScript is "feature complete" and implements all of the commands and tags of RiveScript. The checklist below was used during the development of this module which lays out all of the tasks that a RiveScript interpreter must fulfill.
 
@@ -417,9 +417,9 @@ This port of RiveScript is "feature complete" and implements all of the commands
         - [x] `\/`
         - [x] `\#`
 - [x] Make it pass the [RiveScript Test Suite][rsts] to verify it is _at least_ as accurate as the other 5 implementations.
-- [ ] Followup niceties:
-    - [ ] A JavaScript interpreter for built-in support for JS object macros.
-    - [ ] Pluggable user variable session drivers (with e.g. Redis implementation).
+- [x] Followup niceties:
+    - [x] A JavaScript interpreter for built-in support for JS object macros.
+    - [x] Pluggable user variable session drivers (with e.g. Redis implementation).
 
 # Developer Notes
 
