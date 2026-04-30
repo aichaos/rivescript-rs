@@ -2,7 +2,7 @@
 name = "rivescript"
 version = "0.3.0"
 edition = "2024"
-readme = "../README.md"
+readme = "README.md"
 license = "MIT"
 description = "Implementation of a RiveScript chatbot interpreter for Rust."
 homepage = "https://www.rivescript.com"

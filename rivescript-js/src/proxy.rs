@@ -1,10 +1,8 @@
 use std::{collections::HashMap};
-use async_trait::async_trait;
 use boa_engine::{
-    Context, JsArgs, JsData, JsError, JsNativeError, JsResult, JsValue, NativeFunction, Source, class::{Class, ClassBuilder}
+    Context, JsArgs, JsData, JsError, JsNativeError, JsResult, JsValue, NativeFunction, class::{Class, ClassBuilder}
 };
-use boa_gc::{Finalize, GcRef, GcRefCell, Trace};
-use rivescript_core::macros::Proxy;
+use boa_gc::{Finalize, GcRefCell, Trace};
 
 
 /// This struct holds a "snapshot" of data from the RiveScript Proxy.

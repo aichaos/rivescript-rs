@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use async_trait::async_trait;
-use boa_engine::{Context, JsObject, JsResult, JsString, JsValue, Source, context::intrinsics::Intrinsics, native_function::NativeFunction};
+use boa_engine::{Context, JsString, JsValue, Source};
 
 use rivescript_core::macros::{LanguageLoader, Proxy, SubroutineResult};
 
